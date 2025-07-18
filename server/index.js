@@ -1,11 +1,17 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const { User, Event, ExpenseItem } = require('./models'); // Import models
+const cors = require('cors');
+
+// Import routes
+const userRoutes = require('./routes/users');
+const eventRoutes = require('./routes/events');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Middleware
+app.use(cors()); // Enable CORS for frontend
 app.use(express.json());
 
 // MongoDB connection
@@ -17,30 +23,24 @@ const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 db.once('open', () => {
   console.log('Connected to MongoDB Atlas!');
+  console.log('Database name:', mongoose.connection.db.databaseName);
 });
 
-// Test route with models
-app.get('/api/test', async (req, res) => {
-  try {
-    const userCount = await User.countDocuments();
-    const eventCount = await Event.countDocuments();
-    const expenseCount = await ExpenseItem.countDocuments();
-    
-    res.json({ 
-      message: 'Server is running!',
-      database: {
-        users: userCount,
-        events: eventCount,
-        expenseItems: expenseCount,
-        database: mongoose.connection.db.databaseName, 
-      },
-      timestamp: new Date() 
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/events', eventRoutes);
+
+// Health check route
+app.get('/api/health', (req, res) => {
+  res.json({
+    message: 'Expense Tracker API is running!',
+    database: mongoose.connection.db.databaseName,
+    timestamp: new Date()
+  });
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;
