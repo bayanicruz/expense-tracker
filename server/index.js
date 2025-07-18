@@ -9,7 +9,9 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI);
+mongoose.connect(process.env.MONGODB_URI, {
+  dbName: 'expense_tracker_dev'
+});
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
@@ -29,7 +31,8 @@ app.get('/api/test', async (req, res) => {
       database: {
         users: userCount,
         events: eventCount,
-        expenseItems: expenseCount
+        expenseItems: expenseCount,
+        database: mongoose.connection.db.databaseName, 
       },
       timestamp: new Date() 
     });
