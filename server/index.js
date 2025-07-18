@@ -10,7 +10,7 @@ app.use(express.json());
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
-  dbName: 'expense_tracker_dev'
+  dbName: process.env.DATABASE
 });
 
 const db = mongoose.connection;
