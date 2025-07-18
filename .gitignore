@@ -1,6 +1,19 @@
-# dependencies
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Dependencies
 node_modules/
 
-*.env
+# Logs
+*.log
 
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Other
+.DS_Store
 .vscode/
