@@ -1,5 +1,5 @@
 // server/controllers/userController.js
-const { User } = require('../models');
+const { User, Event, ExpenseItem } = require('../models');
 
 // GET /api/users
 const getAllUsers = async (req, res) => {
@@ -49,7 +49,7 @@ const createUser = async (req, res) => {
       name,
       email,
       passwordHash: 'placeholder-will-add-auth-later',
-      role: role || 'user'
+      role: 'user'
     });
 
     await user.save();
@@ -64,8 +64,113 @@ const createUser = async (req, res) => {
   }
 };
 
+// PATCH /api/users/:id
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Don't allow password updates through this endpoint
+    delete updates.passwordHash;
+    delete updates.password;
+
+    const user = await User.findByIdAndUpdate(
+      id, 
+      updates, 
+      { new: true }
+    ).select('-passwordHash');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// DELETE /api/users/:id
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await User.findByIdAndDelete(id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// GET /api/users/:id/expenses
+const getUserExpenses = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verify user exists
+    const user = await User.findById(id, '-passwordHash');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Find all events where user is a participant
+    const events = await Event.find({
+      'participants.user': id
+    }).populate('participants.user', 'name email');
+
+    let totalOwed = 0;
+    const eventBreakdown = [];
+
+    for (const event of events) {
+      // Get expense items for this event
+      const expenseItems = await ExpenseItem.find({ eventId: event._id });
+      const eventTotal = expenseItems.reduce((sum, item) => sum + item.amount, 0);
+      
+      // Find user's participation info
+      const userParticipation = event.participants.find(p => p.user._id.toString() === id);
+      const participantCount = event.participants.length;
+      const userShare = participantCount > 0 ? eventTotal / participantCount : 0;
+      const amountOwed = userParticipation && !userParticipation.hasPaid ? userShare : 0;
+      
+      totalOwed += amountOwed;
+
+      eventBreakdown.push({
+        eventId: event._id,
+        eventTitle: event.title,
+        eventDate: event.eventDate,
+        eventTotal: eventTotal,
+        participantCount: participantCount,
+        userShare: userShare,
+        hasPaid: userParticipation ? userParticipation.hasPaid : false,
+        amountOwed: amountOwed,
+        expenseItems: expenseItems.map(item => ({
+          itemName: item.itemName,
+          amount: item.amount
+        }))
+      });
+    }
+
+    res.json({
+      user: user,
+      totalOwed: totalOwed,
+      eventCount: events.length,
+      eventBreakdown: eventBreakdown
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
-  createUser
+  createUser,
+  updateUser,
+  deleteUser,
+  getUserExpenses
 };

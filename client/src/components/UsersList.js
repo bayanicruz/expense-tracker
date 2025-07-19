@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import ExpandableList from './ExpandableList';
+import CreateUserForm from './CreateUserForm';
+import UserDetailView from './UserDetailView';
 
 function UsersList({ isOpen, onToggle, onUserClick }) {
   const [users, setUsers] = useState([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showUserDetail, setShowUserDetail] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -37,16 +42,47 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
     return user.name || user.username || `User ${user._id}`;
   };
 
+  const handleItemClick = (item) => {
+    if (item === 'create') {
+      setShowCreateForm(true);
+    } else {
+      setSelectedUserId(item._id);
+      setShowUserDetail(true);
+      onUserClick && onUserClick(item);
+    }
+  };
+
+  const handleUserCreated = () => {
+    fetchUsers(); // Refresh the users list
+  };
+
+  const handleUserUpdated = () => {
+    fetchUsers(); // Refresh the users list when user is updated
+  };
+
   return (
-    <ExpandableList
-      title="Users"
-      isOpen={isOpen}
-      onToggle={onToggle}
-      createText="+ Create User"
-      items={users}
-      onItemClick={onUserClick}
-      getItemText={getUserText}
-    />
+    <>
+      <ExpandableList
+        title="Users"
+        isOpen={isOpen}
+        onToggle={onToggle}
+        createText="+ Create User"
+        items={users}
+        onItemClick={handleItemClick}
+        getItemText={getUserText}
+      />
+      <CreateUserForm 
+        open={showCreateForm}
+        onClose={() => setShowCreateForm(false)}
+        onUserCreated={handleUserCreated}
+      />
+      <UserDetailView 
+        open={showUserDetail}
+        onClose={() => setShowUserDetail(false)}
+        userId={selectedUserId}
+        onUserUpdated={handleUserUpdated}
+      />
+    </>
   );
 }
 
