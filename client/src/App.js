@@ -1,14 +1,27 @@
 import React, { useState } from 'react';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-import Stack from '@mui/material/Stack';
+import { 
+  Box, 
+  Container, 
+  Stack, 
+  Typography, 
+  Button, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  IconButton 
+} from '@mui/material';
+import { Assessment as AnalyticsIcon, Close as CloseIcon } from '@mui/icons-material';
+import ExportButton from './components/analytics/ExportButton';
 import Header from './components/Header';
 import UsersList from './components/UsersList';
 import EventsList from './components/EventsList';
+import Analytics from './components/Analytics';
 
 function App() {
   const [usersOpen, setUsersOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(true);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
 
   const handleUsersClick = () => {
     setUsersOpen(!usersOpen);
@@ -16,6 +29,14 @@ function App() {
 
   const handleEventsClick = () => {
     setEventsOpen(!eventsOpen);
+  };
+
+  const handleAnalyticsOpen = () => {
+    setAnalyticsOpen(true);
+  };
+
+  const handleAnalyticsClose = () => {
+    setAnalyticsOpen(false);
   };
 
   const handleUserClick = (user) => {
@@ -56,7 +77,81 @@ function App() {
               onEventClick={handleEventClick}
             />
           </Stack>
+          
+          {/* Main Content Footer */}
+          <Box sx={{ 
+            borderTop: '1px solid #e0e0e0', 
+            pt: 2, 
+            mt: 3,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <Typography variant="caption" color="textSecondary">
+              © kuruzu 2024
+            </Typography>
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<AnalyticsIcon />}
+              onClick={handleAnalyticsOpen}
+              sx={{ 
+                textTransform: 'none',
+                color: 'text.secondary',
+                fontSize: '0.75rem',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                }
+              }}
+            >
+              Storage Insights
+            </Button>
+          </Box>
         </Box>
+        
+        {/* Analytics Modal */}
+        <Dialog
+          open={analyticsOpen}
+          onClose={handleAnalyticsClose}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: { 
+              minHeight: '80vh',
+              borderRadius: 2
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            pb: 1
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AnalyticsIcon />
+              <Typography variant="h6">
+                Storage Insights & Analytics
+              </Typography>
+            </Box>
+            <IconButton
+              onClick={handleAnalyticsClose}
+              size="small"
+              sx={{ color: 'text.secondary' }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ p: 0 }}>
+            <Analytics />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2, display: 'flex', justifyContent: 'space-between' }}>
+            <ExportButton />
+            <Button onClick={handleAnalyticsClose} variant="outlined">
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );
