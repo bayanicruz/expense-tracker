@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import ExpandableList from './ExpandableList';
 import CreateEventForm from './CreateEventForm';
+import EventDetailView from './EventDetailView';
 
 function EventsList({ isOpen, onToggle, onEventClick }) {
   const [events, setEvents] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEventDetail, setShowEventDetail] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -43,12 +46,18 @@ function EventsList({ isOpen, onToggle, onEventClick }) {
     if (item === 'create') {
       setShowCreateForm(true);
     } else {
+      setSelectedEventId(item._id);
+      setShowEventDetail(true);
       onEventClick && onEventClick(item);
     }
   };
 
   const handleEventCreated = () => {
     fetchEvents(); // Refresh the events list
+  };
+
+  const handleEventUpdated = () => {
+    fetchEvents(); // Refresh the events list when event is updated
   };
 
   return (
@@ -66,6 +75,12 @@ function EventsList({ isOpen, onToggle, onEventClick }) {
         open={showCreateForm}
         onClose={() => setShowCreateForm(false)}
         onEventCreated={handleEventCreated}
+      />
+      <EventDetailView 
+        open={showEventDetail}
+        onClose={() => setShowEventDetail(false)}
+        eventId={selectedEventId}
+        onEventUpdated={handleEventUpdated}
       />
     </>
   );

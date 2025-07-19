@@ -11,7 +11,6 @@ import {
   IconButton,
   List,
   ListItem,
-  ListItemText,
   Stack,
   Chip,
   Autocomplete,
@@ -156,6 +155,21 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
     }
   };
 
+  const calculateTotal = () => {
+    return expenseItems.reduce((total, item) => {
+      const amount = parseFloat(item.amount) || 0;
+      return total + amount;
+    }, 0).toFixed(2);
+  };
+
+  const calculateSplitPerPerson = () => {
+    const total = parseFloat(calculateTotal());
+    const participantCount = selectedParticipants.length;
+    
+    if (participantCount === 0) return "0.00";
+    return (total / participantCount).toFixed(2);
+  };
+
   const handleClose = () => {
     setEventData({ title: '', eventDate: '', participants: [] });
     setExpenseItems([{ itemName: '', amount: '' }]);
@@ -201,6 +215,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
               getOptionLabel={(option) => 
                 typeof option === 'string' ? option : `${option.name || 'Unknown'} (${option.email || 'No email'})`
               }
+              value={null}
               inputValue={userSearch}
               onInputChange={(event, newInputValue) => {
                 setUserSearch(newInputValue);
@@ -302,18 +317,50 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                 </ListItem>
               ))}
             </List>
+
+            {/* Total and Split - Show if there are expense items with amounts */}
+            {expenseItems.some(item => item.amount && parseFloat(item.amount) > 0) && (
+              <Box sx={{ 
+                mt: 2, 
+                p: 3, 
+                backgroundColor: '#e3f2fd', 
+                borderRadius: 2, 
+                border: '1px solid #2196f3',
+                textAlign: 'center'
+              }}>
+                <Typography variant="h4" sx={{ mb: 1, color: '#1976d2' }}>
+                  ${calculateSplitPerPerson()}
+                </Typography>
+                <Typography variant="h6" sx={{ mb: 1, color: '#1976d2' }}>
+                  Per Person ({selectedParticipants.length} people)
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Total: ${calculateTotal()}
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Stack>
       </DialogContent>
       
-      <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
+      <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
         <Button 
           onClick={handleSubmit} 
           variant="contained"
           disabled={!eventData.title || !eventData.eventDate}
+          fullWidth
+          size="large"
+          sx={{ py: 2 }}
         >
           Create Event
+        </Button>
+        <Button 
+          onClick={handleClose}
+          fullWidth
+          size="large"
+          sx={{ py: 2 }}
+        >
+          Cancel
         </Button>
       </DialogActions>
     </Dialog>

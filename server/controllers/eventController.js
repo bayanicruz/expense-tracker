@@ -5,7 +5,7 @@ const { Event, ExpenseItem, User } = require('../models');
 const getAllEvents = async (req, res) => {
   try {
     const events = await Event.find()
-      .populate('participants', 'name email')
+      .populate('participants.user', 'name email')
       .sort({ eventDate: -1 }); // Most recent first
 
     // Calculate total for each event
@@ -40,6 +40,12 @@ const createEvent = async (req, res) => {
       });
     }
 
+    // Convert participant IDs to the new format with payment status
+    const formattedParticipants = participants.map(participantId => ({
+      user: participantId,
+      hasPaid: false
+    }));
+
     // Verify all participants exist
     const validParticipants = await User.find({ _id: { $in: participants } });
     if (validParticipants.length !== participants.length) {
@@ -49,13 +55,31 @@ const createEvent = async (req, res) => {
     const event = new Event({
       title,
       eventDate,
-      participants
+      participants: formattedParticipants
     });
 
     await event.save();
-    await event.populate('participants', 'name email');
+    await event.populate('participants.user', 'name email');
 
     res.status(201).json(event);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// GET /api/events/:id
+const getEventById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const event = await Event.findById(id)
+      .populate('participants.user', 'name email');
+    
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    res.json(event);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -71,7 +95,7 @@ const updateEvent = async (req, res) => {
       id, 
       updates, 
       { new: true }
-    ).populate('participants', 'name email');
+    ).populate('participants.user', 'name email');
 
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
@@ -134,10 +158,68 @@ const addEventItem = async (req, res) => {
   }
 };
 
+// DELETE /api/events/:id
+const deleteEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Delete all expense items for this event first
+    await ExpenseItem.deleteMany({ eventId: id });
+    
+    // Delete the event
+    const event = await Event.findByIdAndDelete(id);
+    
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    res.json({ message: 'Event and associated expense items deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// PATCH /api/events/:id/participants/:participantId/payment
+const updateParticipantPaymentStatus = async (req, res) => {
+  try {
+    const { id, participantId } = req.params;
+    const { hasPaid } = req.body;
+    
+    if (typeof hasPaid !== 'boolean') {
+      return res.status(400).json({ error: 'hasPaid must be a boolean value' });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    // Find and update the participant's payment status
+    const participantIndex = event.participants.findIndex(
+      p => p.user.toString() === participantId
+    );
+
+    if (participantIndex === -1) {
+      return res.status(404).json({ error: 'Participant not found in this event' });
+    }
+
+    event.participants[participantIndex].hasPaid = hasPaid;
+    await event.save();
+    await event.populate('participants.user', 'name email');
+
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getAllEvents,
+  getEventById,
   createEvent,
   updateEvent,
+  deleteEvent,
   getEventItems,
-  addEventItem
+  addEventItem,
+  updateParticipantPaymentStatus
 };
