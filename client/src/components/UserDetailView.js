@@ -245,20 +245,32 @@ function UserDetailView({ open, onClose, userId, onUserUpdated }) {
                             <Typography variant="body2" color="textSecondary">
                               {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''}
                             </Typography>
+                            {event.eventOwner && (
+                              <Typography variant="body2" sx={{ 
+                                color: '#1976d2', 
+                                fontWeight: 'medium',
+                                fontSize: '0.75rem'
+                              }}>
+                                Owner: {event.eventOwner.name}
+                              </Typography>
+                            )}
                           </Box>
                           <Box sx={{ textAlign: 'right' }}>
                             <Chip 
-                              label={event.hasPaid ? 'Paid' : 'Unpaid'}
-                              color={event.hasPaid ? 'success' : 'error'}
+                              label={event.amountOwed > 0 ? 'Partially Paid' : event.amountPaid > 0 ? 'Paid' : 'Unpaid'}
+                              color={event.amountOwed > 0 ? 'warning' : event.amountPaid > 0 ? 'success' : 'error'}
                               size="small"
                               sx={{ mb: 1 }}
                             />
                             <Typography variant="body2" color="textSecondary">
                               Your Share: ${event.userShare.toFixed(2)}
                             </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              Paid: ${event.amountPaid.toFixed(2)}
+                            </Typography>
                             {event.amountOwed > 0 && (
                               <Typography variant="body2" color="error">
-                                Owe: ${event.amountOwed.toFixed(2)}
+                                Still Owe: ${event.amountOwed.toFixed(2)}
                               </Typography>
                             )}
                           </Box>

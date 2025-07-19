@@ -5,7 +5,40 @@ const { User, Event, ExpenseItem } = require('../models');
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({}, '-passwordHash'); // Exclude password hash
-    res.json(users);
+    
+    // Calculate running balance for each user
+    const usersWithBalance = await Promise.all(
+      users.map(async (user) => {
+        // Find all events where user is a participant
+        const events = await Event.find({
+          'participants.user': user._id
+        }).populate('participants.user', 'name email');
+
+        let totalOwed = 0;
+
+        for (const event of events) {
+          // Get expense items for this event
+          const expenseItems = await ExpenseItem.find({ eventId: event._id });
+          const eventTotal = expenseItems.reduce((sum, item) => sum + item.amount, 0);
+          
+          // Find user's participation info
+          const userParticipation = event.participants.find(p => p.user._id.toString() === user._id.toString());
+          const participantCount = event.participants.length;
+          const userShare = participantCount > 0 ? eventTotal / participantCount : 0;
+          const amountPaid = userParticipation ? userParticipation.amountPaid || 0 : 0;
+          const amountOwed = Math.max(0, userShare - amountPaid);
+          
+          totalOwed += amountOwed;
+        }
+
+        return {
+          ...user.toObject(),
+          runningBalance: totalOwed
+        };
+      })
+    );
+
+    res.json(usersWithBalance);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -121,7 +154,10 @@ const getUserExpenses = async (req, res) => {
     // Find all events where user is a participant
     const events = await Event.find({
       'participants.user': id
-    }).populate('participants.user', 'name email');
+    }).populate([
+      { path: 'owner', select: 'name email' },
+      { path: 'participants.user', select: 'name email' }
+    ]);
 
     let totalOwed = 0;
     const eventBreakdown = [];
@@ -135,7 +171,8 @@ const getUserExpenses = async (req, res) => {
       const userParticipation = event.participants.find(p => p.user._id.toString() === id);
       const participantCount = event.participants.length;
       const userShare = participantCount > 0 ? eventTotal / participantCount : 0;
-      const amountOwed = userParticipation && !userParticipation.hasPaid ? userShare : 0;
+      const amountPaid = userParticipation ? userParticipation.amountPaid || 0 : 0;
+      const amountOwed = Math.max(0, userShare - amountPaid);
       
       totalOwed += amountOwed;
 
@@ -143,10 +180,14 @@ const getUserExpenses = async (req, res) => {
         eventId: event._id,
         eventTitle: event.title,
         eventDate: event.eventDate,
+        eventOwner: event.owner ? {
+          name: event.owner.name,
+          email: event.owner.email
+        } : null,
         eventTotal: eventTotal,
         participantCount: participantCount,
         userShare: userShare,
-        hasPaid: userParticipation ? userParticipation.hasPaid : false,
+        amountPaid: amountPaid,
         amountOwed: amountOwed,
         expenseItems: expenseItems.map(item => ({
           itemName: item.itemName,

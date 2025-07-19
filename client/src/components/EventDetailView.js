@@ -16,8 +16,6 @@ import {
   Autocomplete,
   CircularProgress,
   Divider,
-  Switch,
-  FormControlLabel
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
 
@@ -58,22 +56,22 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
           const firstParticipant = event.participants[0];
           
           if (typeof firstParticipant === 'object' && firstParticipant.user && firstParticipant.user.name) {
-            // New format: participants have populated user and hasPaid fields
+            // New format: participants have populated user and amountPaid fields
             const participantsWithPaymentStatus = event.participants.map(p => ({
               ...p.user,
-              hasPaid: p.hasPaid || false
+              amountPaid: p.amountPaid || 0
             }));
             setParticipantDetails(participantsWithPaymentStatus);
           } else if (typeof firstParticipant === 'object' && firstParticipant.name) {
             // Old format: participants are populated user objects
-            const participants = event.participants.map(p => ({ ...p, hasPaid: false }));
+            const participants = event.participants.map(p => ({ ...p, amountPaid: 0 }));
             setParticipantDetails(participants);
           } else if (typeof firstParticipant === 'string') {
             // Participants are just IDs, need to fetch details
             const participantPromises = event.participants.map(async (participantId) => {
               const userResponse = await fetch(`/api/users/${participantId}`);
               const user = userResponse.ok ? await userResponse.json() : null;
-              return user ? { ...user, hasPaid: false } : null;
+              return user ? { ...user, amountPaid: 0 } : null;
             });
             const participants = await Promise.all(participantPromises);
             const filteredParticipants = participants.filter(p => p !== null);
@@ -138,9 +136,9 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
 
   const addParticipant = async (user) => {
     try {
-      const participantsForSave = [...participantDetails, { ...user, hasPaid: false }].map(p => ({
+      const participantsForSave = [...participantDetails, { ...user, amountPaid: 0 }].map(p => ({
         user: p._id,
-        hasPaid: p.hasPaid || false
+        amountPaid: p.amountPaid || 0
       }));
       
       const response = await fetch(`/api/events/${eventId}`, {
@@ -154,7 +152,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
       });
 
       if (response.ok) {
-        setParticipantDetails(prev => [...prev, { ...user, hasPaid: false }]);
+        setParticipantDetails(prev => [...prev, { ...user, amountPaid: 0 }]);
         setUserSearch('');
         setAvailableUsers([]);
         if (onEventUpdated) onEventUpdated();
@@ -169,7 +167,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
       const updatedParticipants = participantDetails.filter(p => p._id !== userId);
       const participantsForSave = updatedParticipants.map(p => ({
         user: p._id,
-        hasPaid: p.hasPaid || false
+        amountPaid: p.amountPaid || 0
       }));
       
       const response = await fetch(`/api/events/${eventId}`, {
@@ -191,7 +189,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
     }
   };
 
-  const togglePaymentStatus = async (participantId, currentStatus) => {
+  const updatePaymentAmount = async (participantId, newAmount) => {
     try {
       const response = await fetch(`/api/events/${eventId}/participants/${participantId}/payment`, {
         method: 'PATCH',
@@ -199,7 +197,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          hasPaid: !currentStatus
+          amountPaid: parseFloat(newAmount) || 0
         })
       });
 
@@ -207,14 +205,14 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
         setParticipantDetails(prev => 
           prev.map(participant => 
             participant._id === participantId 
-              ? { ...participant, hasPaid: !currentStatus }
+              ? { ...participant, amountPaid: parseFloat(newAmount) || 0 }
               : participant
           )
         );
         if (onEventUpdated) onEventUpdated();
       }
     } catch (error) {
-      console.error('Error updating payment status:', error);
+      console.error('Error updating payment amount:', error);
     }
   };
 
@@ -330,6 +328,16 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
     return (total / participantCount).toFixed(2);
   };
 
+  const calculateRemainingBalance = () => {
+    const total = parseFloat(calculateTotal());
+    const totalAmountPaid = participantDetails.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
+    return Math.max(0, total - totalAmountPaid).toFixed(2);
+  };
+
+  const calculatePaidAmount = () => {
+    return participantDetails.reduce((sum, p) => sum + (p.amountPaid || 0), 0).toFixed(2);
+  };
+
   if (loading) {
     return (
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -348,33 +356,82 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
             <Typography variant="h5" component="div" sx={{ mb: 1 }}>
               {eventData.title || 'Event Details'}
             </Typography>
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
               {eventData.eventDate ? formatDate(eventData.eventDate) : ''}
             </Typography>
+            {eventData.owner && (
+              <Typography variant="body2" sx={{ 
+                color: '#1976d2', 
+                fontWeight: 'medium',
+                backgroundColor: '#e3f2fd',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                display: 'inline-block'
+              }}>
+                Owner: {eventData.owner.name || 'Unknown'}
+              </Typography>
+            )}
           </Box>
         </Box>
       </DialogTitle>
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 1 }}>
 
-          {/* Total and Split - Emphasized */}
+          {/* Financial Summary - Enhanced */}
           {expenseItems.length > 0 && (
             <Box sx={{ 
               p: 3, 
               backgroundColor: '#e3f2fd', 
               borderRadius: 2, 
-              border: '1px solid #2196f3',
-              textAlign: 'center'
+              border: '1px solid #2196f3'
             }}>
-              <Typography variant="h4" sx={{ mb: 1, color: '#1976d2' }}>
-                ${calculateSplitPerPerson()}
-              </Typography>
-              <Typography variant="h6" sx={{ mb: 1, color: '#1976d2' }}>
-                Per Person ({participantDetails.length} people)
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Total: ${calculateTotal()}
-              </Typography>
+              {/* Total and Split Row */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 2 }}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                    ${calculateTotal()}
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: '#1976d2' }}>
+                    Total Amount
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                    ${calculateSplitPerPerson()}
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: '#1976d2' }}>
+                    Per Person
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {/* Payment Status Row */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-around', pt: 2, borderTop: '1px solid #2196f3' }}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'medium' }}>
+                    ${calculatePaidAmount()}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Paid
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ color: '#f44336', fontWeight: 'medium' }}>
+                    ${calculateRemainingBalance()}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Remaining
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 'medium' }}>
+                    {participantDetails.length} people
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Participants
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
           )}
 
@@ -503,17 +560,14 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={participant.hasPaid || false}
-                                onChange={() => togglePaymentStatus(participant._id, participant.hasPaid)}
-                                color="success"
-                              />
-                            }
-                            label={participant.hasPaid ? "Paid" : "Unpaid"}
-                            labelPlacement="start"
-                            sx={{ mr: 1 }}
+                          <TextField
+                            label="Amount Paid"
+                            type="number"
+                            size="small"
+                            value={participant.amountPaid || 0}
+                            onChange={(e) => updatePaymentAmount(participant._id, e.target.value)}
+                            inputProps={{ min: 0, step: 0.01 }}
+                            sx={{ width: '120px' }}
                           />
                           <IconButton 
                             onClick={() => removeParticipant(participant._id)}

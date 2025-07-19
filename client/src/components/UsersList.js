@@ -39,7 +39,13 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
   };
 
   const getUserText = (user) => {
-    return user.name || user.username || `User ${user._id}`;
+    const name = user.name || user.username || `User ${user._id}`;
+    const balance = user.runningBalance || 0;
+    
+    return {
+      primary: name,
+      secondary: `Running Balance: $${balance.toFixed(2)}`
+    };
   };
 
   const handleItemClick = (item) => {

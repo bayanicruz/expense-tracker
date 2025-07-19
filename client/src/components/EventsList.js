@@ -39,7 +39,14 @@ function EventsList({ isOpen, onToggle, onEventClick }) {
   };
 
   const getEventText = (event) => {
-    return event.name || event.title || `Event ${event._id}`;
+    const title = event.name || event.title || `Event ${event._id}`;
+    const owner = event.owner ? event.owner.name : 'Unknown';
+    const remainingBalance = event.remainingBalance || 0;
+    
+    return {
+      primary: title,
+      secondary: `Owner: ${owner} • Remaining: $${remainingBalance.toFixed(2)}`
+    };
   };
 
   const handleItemClick = (item) => {

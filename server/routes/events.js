@@ -8,7 +8,7 @@ const {
   deleteEvent,
   getEventItems,
   addEventItem,
-  updateParticipantPaymentStatus
+  updateParticipantPaymentAmount
 } = require('../controllers/eventController');
 
 const router = express.Router();
@@ -25,7 +25,7 @@ router.delete('/:id', deleteEvent);
 router.get('/:id/items', getEventItems);
 router.post('/:id/items', addEventItem);
 
-// Payment status routes
-router.patch('/:id/participants/:participantId/payment', updateParticipantPaymentStatus);
+// Payment amount routes
+router.patch('/:id/participants/:participantId/payment', updateParticipantPaymentAmount);
 
 module.exports = router;

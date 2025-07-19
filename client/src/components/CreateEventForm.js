@@ -22,6 +22,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   const [eventData, setEventData] = useState({
     title: '',
     eventDate: '',
+    owner: '',
     participants: []
   });
   
@@ -33,6 +34,11 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   const [availableUsers, setAvailableUsers] = useState([]);
   const [selectedParticipants, setSelectedParticipants] = useState([]);
   const [userSearchLoading, setUserSearchLoading] = useState(false);
+
+  const [ownerSearch, setOwnerSearch] = useState('');
+  const [availableOwners, setAvailableOwners] = useState([]);
+  const [selectedOwner, setSelectedOwner] = useState(null);
+  const [ownerSearchLoading, setOwnerSearchLoading] = useState(false);
 
   const handleEventChange = (field, value) => {
     setEventData(prev => ({
@@ -76,6 +82,48 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
     } finally {
       setUserSearchLoading(false);
     }
+  };
+
+  const searchOwners = async (searchTerm) => {
+    if (!searchTerm.trim()) {
+      setAvailableOwners([]);
+      return;
+    }
+
+    setOwnerSearchLoading(true);
+    try {
+      const response = await fetch('/api/users');
+      if (response.ok) {
+        const users = await response.json();
+        const filteredUsers = users.filter(user => 
+          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+        setAvailableOwners(filteredUsers);
+      }
+    } catch (error) {
+      console.error('Error searching owners:', error);
+    } finally {
+      setOwnerSearchLoading(false);
+    }
+  };
+
+  const addOwner = (user) => {
+    setSelectedOwner(user);
+    setEventData(prev => ({
+      ...prev,
+      owner: user._id
+    }));
+    setOwnerSearch('');
+    setAvailableOwners([]);
+  };
+
+  const removeOwner = () => {
+    setSelectedOwner(null);
+    setEventData(prev => ({
+      ...prev,
+      owner: ''
+    }));
   };
 
   const addParticipant = (user) => {
@@ -141,11 +189,14 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
       }
 
       // Reset form
-      setEventData({ title: '', eventDate: '', participants: [] });
+      setEventData({ title: '', eventDate: '', owner: '', participants: [] });
       setExpenseItems([{ itemName: '', amount: '' }]);
       setSelectedParticipants([]);
+      setSelectedOwner(null);
       setUserSearch('');
       setAvailableUsers([]);
+      setOwnerSearch('');
+      setAvailableOwners([]);
       
       // Notify parent and close
       if (onEventCreated) onEventCreated();
@@ -171,11 +222,14 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   };
 
   const handleClose = () => {
-    setEventData({ title: '', eventDate: '', participants: [] });
+    setEventData({ title: '', eventDate: '', owner: '', participants: [] });
     setExpenseItems([{ itemName: '', amount: '' }]);
     setSelectedParticipants([]);
+    setSelectedOwner(null);
     setUserSearch('');
     setAvailableUsers([]);
+    setOwnerSearch('');
+    setAvailableOwners([]);
     onClose();
   };
 
@@ -202,6 +256,77 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
             InputLabelProps={{ shrink: true }}
             required
           />
+
+          {/* Owner Section */}
+          <Box>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Event Owner
+            </Typography>
+            
+            <Autocomplete
+              freeSolo
+              options={availableOwners}
+              getOptionLabel={(option) => 
+                typeof option === 'string' ? option : `${option.name || 'Unknown'} (${option.email || 'No email'})`
+              }
+              value={null}
+              inputValue={ownerSearch}
+              onInputChange={(event, newInputValue) => {
+                setOwnerSearch(newInputValue);
+                searchOwners(newInputValue);
+              }}
+              onChange={(event, value) => {
+                if (value && typeof value === 'object') {
+                  addOwner(value);
+                }
+              }}
+              loading={ownerSearchLoading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search for event owner..."
+                  placeholder="Type to search for users"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {ownerSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+              renderOption={(props, option) => (
+                <Box component="li" {...props}>
+                  <Box>
+                    <Typography variant="body1">{option.name || 'Unknown'}</Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {option.email || 'No email'}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+            />
+
+            {/* Selected Owner */}
+            {selectedOwner && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                  Event owner:
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  <Chip
+                    label={`${selectedOwner.name || 'Unknown'} (${selectedOwner.email || 'No email'})`}
+                    onDelete={removeOwner}
+                    deleteIcon={<CloseIcon />}
+                    color="secondary"
+                    variant="outlined"
+                  />
+                </Box>
+              </Box>
+            )}
+          </Box>
 
           {/* Participants Section */}
           <Box>
@@ -347,7 +472,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
         <Button 
           onClick={handleSubmit} 
           variant="contained"
-          disabled={!eventData.title || !eventData.eventDate}
+          disabled={!eventData.title || !eventData.eventDate || !eventData.owner}
           fullWidth
           size="large"
           sx={{ py: 2 }}
