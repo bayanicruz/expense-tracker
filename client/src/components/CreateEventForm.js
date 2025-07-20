@@ -21,13 +21,13 @@ import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/i
 function CreateEventForm({ open, onClose, onEventCreated }) {
   const [eventData, setEventData] = useState({
     title: '',
-    eventDate: '',
+    eventDate: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
     owner: '',
     participants: []
   });
   
   const [expenseItems, setExpenseItems] = useState([
-    { itemName: '', amount: '' }
+    { itemName: 'Expense', amount: '' }
   ]);
   
   const [userSearch, setUserSearch] = useState('');
@@ -189,8 +189,8 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
       }
 
       // Reset form
-      setEventData({ title: '', eventDate: '', owner: '', participants: [] });
-      setExpenseItems([{ itemName: '', amount: '' }]);
+      setEventData({ title: '', eventDate: new Date().toISOString().split('T')[0], owner: '', participants: [] });
+      setExpenseItems([{ itemName: 'Expense', amount: '' }]);
       setSelectedParticipants([]);
       setSelectedOwner(null);
       setUserSearch('');
@@ -222,8 +222,8 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   };
 
   const handleClose = () => {
-    setEventData({ title: '', eventDate: '', owner: '', participants: [] });
-    setExpenseItems([{ itemName: '', amount: '' }]);
+    setEventData({ title: '', eventDate: new Date().toISOString().split('T')[0], owner: '', participants: [] });
+    setExpenseItems([{ itemName: 'Expense', amount: '' }]);
     setSelectedParticipants([]);
     setSelectedOwner(null);
     setUserSearch('');

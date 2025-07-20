@@ -12,8 +12,7 @@ import {
 
 function CreateUserForm({ open, onClose, onUserCreated }) {
   const [userData, setUserData] = useState({
-    name: '',
-    email: ''
+    name: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -40,11 +39,6 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
       newErrors.name = 'Name is required';
     }
 
-    if (!userData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(userData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -62,8 +56,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: userData.name,
-          email: userData.email
+          name: userData.name
         })
       });
 
@@ -76,8 +69,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
 
       // Reset form
       setUserData({
-        name: '',
-        email: ''
+        name: ''
       });
       setErrors({});
       
@@ -92,8 +84,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
 
   const handleClose = () => {
     setUserData({
-      name: '',
-      email: ''
+      name: ''
     });
     setErrors({});
     onClose();
@@ -114,16 +105,6 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
             required
           />
           
-          <TextField
-            label="Email"
-            type="email"
-            fullWidth
-            value={userData.email}
-            onChange={(e) => handleChange('email', e.target.value)}
-            error={!!errors.email}
-            helperText={errors.email}
-            required
-          />
 
           {errors.submit && (
             <Typography color="error" variant="body2">
@@ -137,7 +118,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
         <Button 
           onClick={handleSubmit} 
           variant="contained"
-          disabled={!userData.name || !userData.email}
+          disabled={!userData.name}
           fullWidth
           size="large"
           sx={{ py: 2 }}

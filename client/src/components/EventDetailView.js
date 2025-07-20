@@ -16,6 +16,8 @@ import {
   Autocomplete,
   CircularProgress,
   Divider,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
 
@@ -116,8 +118,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
       if (response.ok) {
         const users = await response.json();
         const filteredUsers = users.filter(user => 
-          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
         ).filter(user => {
           // Exclude already added participants - check both populated and ID formats
           const currentParticipantIds = eventData.participants.map(p => 
@@ -435,6 +436,111 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
             </Box>
           )}
 
+          {/* Participants Section */}
+          <Box>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Participants
+            </Typography>
+            
+            <Autocomplete
+              freeSolo
+              options={availableUsers}
+              getOptionLabel={(option) => 
+                typeof option === 'string' ? option : `${option.name || 'Unknown'}`
+              }
+              inputValue={userSearch}
+              onInputChange={(event, newInputValue) => {
+                setUserSearch(newInputValue);
+                searchUsers(newInputValue);
+              }}
+              onChange={(event, value) => {
+                if (value && typeof value === 'object') {
+                  addParticipant(value);
+                }
+              }}
+              loading={userSearchLoading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Add participants..."
+                  placeholder="Type to search for users"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {userSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+              renderOption={(props, option) => (
+                <Box component="li" {...props}>
+                  <Box>
+                    <Typography variant="body1">{option.name || 'Unknown'}</Typography>
+                  </Box>
+                </Box>
+              )}
+            />
+
+            {/* Current Participants */}
+            {participantDetails.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                  Current participants:
+                </Typography>
+                <List>
+                  {participantDetails.map((participant) => (
+                    <ListItem key={participant._id} sx={{ px: 0 }}>
+                      <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography variant="body1">
+                            {participant.name || 'Unknown'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={participant.amountPaid === parseFloat(calculateSplitPerPerson())}
+                                onChange={(e) => {
+                                  const splitAmount = e.target.checked ? calculateSplitPerPerson() : '0';
+                                  updatePaymentAmount(participant._id, splitAmount);
+                                }}
+                                size="small"
+                              />
+                            }
+                            label="Split"
+                            sx={{ mr: 1 }}
+                          />
+                          <TextField
+                            label="Amount Paid"
+                            type="number"
+                            size="small"
+                            value={participant.amountPaid || 0}
+                            onChange={(e) => updatePaymentAmount(participant._id, e.target.value)}
+                            inputProps={{ min: 0, step: 0.01 }}
+                            sx={{ width: '120px' }}
+                          />
+                          <IconButton 
+                            onClick={() => removeParticipant(participant._id)}
+                            color="error"
+                            size="small"
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                        </Box>
+                      </Box>
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
+          </Box>
+
+          <Divider />
+
           {/* Expense Items Section */}
           <Box>
             <Typography variant="h6" sx={{ mb: 2 }}>
@@ -486,103 +592,6 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
                 </ListItem>
               ))}
             </List>
-          </Box>
-
-          <Divider />
-
-          {/* Participants Section */}
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Participants
-            </Typography>
-            
-            <Autocomplete
-              freeSolo
-              options={availableUsers}
-              getOptionLabel={(option) => 
-                typeof option === 'string' ? option : `${option.name || 'Unknown'} (${option.email || 'No email'})`
-              }
-              inputValue={userSearch}
-              onInputChange={(event, newInputValue) => {
-                setUserSearch(newInputValue);
-                searchUsers(newInputValue);
-              }}
-              onChange={(event, value) => {
-                if (value && typeof value === 'object') {
-                  addParticipant(value);
-                }
-              }}
-              loading={userSearchLoading}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Add participants..."
-                  placeholder="Type to search for users"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {userSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-              renderOption={(props, option) => (
-                <Box component="li" {...props}>
-                  <Box>
-                    <Typography variant="body1">{option.name || 'Unknown'}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {option.email || 'No email'}
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-            />
-
-            {/* Current Participants */}
-            {participantDetails.length > 0 && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                  Current participants:
-                </Typography>
-                <List>
-                  {participantDetails.map((participant) => (
-                    <ListItem key={participant._id} sx={{ px: 0 }}>
-                      <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="body1">
-                            {participant.name || 'Unknown'}
-                          </Typography>
-                          <Typography variant="body2" color="textSecondary">
-                            {participant.email || 'No email'}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <TextField
-                            label="Amount Paid"
-                            type="number"
-                            size="small"
-                            value={participant.amountPaid || 0}
-                            onChange={(e) => updatePaymentAmount(participant._id, e.target.value)}
-                            inputProps={{ min: 0, step: 0.01 }}
-                            sx={{ width: '120px' }}
-                          />
-                          <IconButton 
-                            onClick={() => removeParticipant(participant._id)}
-                            color="error"
-                            size="small"
-                          >
-                            <CloseIcon />
-                          </IconButton>
-                        </Box>
-                      </Box>
-                    </ListItem>
-                  ))}
-                </List>
-              </Box>
-            )}
           </Box>
         </Stack>
       </DialogContent>

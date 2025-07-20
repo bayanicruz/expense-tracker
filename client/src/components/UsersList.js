@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import ExpandableList from './ExpandableList';
 import CreateUserForm from './CreateUserForm';
 import UserDetailView from './UserDetailView';
+import EventDetailView from './EventDetailView';
 
 function UsersList({ isOpen, onToggle, onUserClick }) {
   const [users, setUsers] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showUserDetail, setShowUserDetail] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [showEventDetail, setShowEventDetail] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,7 +47,7 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
     
     return {
       primary: name,
-      secondary: `Running Balance: $${balance.toFixed(2)}`
+      secondary: `Owed: $${balance.toFixed(2)}`
     };
   };
 
@@ -64,6 +67,15 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
 
   const handleUserUpdated = () => {
     fetchUsers(); // Refresh the users list when user is updated
+  };
+
+  const handleEventClick = (eventId) => {
+    setSelectedEventId(eventId);
+    setShowEventDetail(true);
+  };
+
+  const handleEventUpdated = () => {
+    fetchUsers(); // Refresh the users list when event is updated
   };
 
   return (
@@ -87,6 +99,13 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
         onClose={() => setShowUserDetail(false)}
         userId={selectedUserId}
         onUserUpdated={handleUserUpdated}
+        onEventClick={handleEventClick}
+      />
+      <EventDetailView 
+        open={showEventDetail}
+        onClose={() => setShowEventDetail(false)}
+        eventId={selectedEventId}
+        onEventUpdated={handleEventUpdated}
       />
     </>
   );

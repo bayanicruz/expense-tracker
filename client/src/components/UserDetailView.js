@@ -14,13 +14,16 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Chip
+  Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 
-function UserDetailView({ open, onClose, userId, onUserUpdated }) {
+function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) {
   const [userData, setUserData] = useState({
     name: '',
-    email: '',
     role: 'user',
     createdAt: '',
     updatedAt: ''
@@ -87,8 +90,7 @@ function UserDetailView({ open, onClose, userId, onUserUpdated }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: userData.name,
-          email: userData.email
+          name: userData.name
         })
       });
 
@@ -124,7 +126,6 @@ function UserDetailView({ open, onClose, userId, onUserUpdated }) {
   const handleClose = () => {
     setUserData({
       name: '',
-      email: '',
       role: 'user',
       createdAt: '',
       updatedAt: ''
@@ -178,14 +179,6 @@ function UserDetailView({ open, onClose, userId, onUserUpdated }) {
             required
           />
           
-          <TextField
-            label="Email"
-            type="email"
-            fullWidth
-            value={userData.email}
-            onChange={(e) => handleChange('email', e.target.value)}
-            required
-          />
 
 
           {userData.updatedAt && (
@@ -233,70 +226,181 @@ function UserDetailView({ open, onClose, userId, onUserUpdated }) {
                 <Typography variant="subtitle1" sx={{ mb: 2 }}>
                   Event Breakdown
                 </Typography>
-                <List>
-                  {expenseData.eventBreakdown.map((event, index) => (
-                    <Box key={event.eventId}>
-                      <ListItem sx={{ px: 0, flexDirection: 'column', alignItems: 'stretch' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                              {event.eventTitle}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''}
-                            </Typography>
-                            {event.eventOwner && (
-                              <Typography variant="body2" sx={{ 
-                                color: '#1976d2', 
-                                fontWeight: 'medium',
-                                fontSize: '0.75rem'
-                              }}>
-                                Owner: {event.eventOwner.name}
-                              </Typography>
-                            )}
+                
+                {/* Events Owned */}
+                <Accordion>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="h6">
+                      Events Owned ({expenseData.eventBreakdown.filter(event => event.eventOwner && event.eventOwner._id === userId).length})
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <List>
+                      {expenseData.eventBreakdown
+                        .filter(event => event.eventOwner && event.eventOwner._id === userId)
+                        .map((event, index, filteredEvents) => (
+                          <Box key={event.eventId}>
+                            <ListItem 
+                              sx={{ 
+                                px: 0, 
+                                flexDirection: 'column', 
+                                alignItems: 'stretch',
+                                cursor: onEventClick ? 'pointer' : 'default',
+                                '&:hover': onEventClick ? {
+                                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                                } : {}
+                              }}
+                              onClick={() => onEventClick && onEventClick(event.eventId)}
+                            >
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
+                                <Box sx={{ flexGrow: 1 }}>
+                                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                                    {event.eventTitle}
+                                  </Typography>
+                                  <Typography variant="body2" color="textSecondary">
+                                    {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''}
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ textAlign: 'right' }}>
+                                  <Chip 
+                                    label="Owner"
+                                    color="primary"
+                                    size="small"
+                                    sx={{ mb: 1 }}
+                                  />
+                                  <Typography variant="body2" color="textSecondary">
+                                    Split: ${(event.splitPerPerson || 0).toFixed(2)}
+                                  </Typography>
+                                  <Typography variant="body2" color="textSecondary">
+                                    Collected: ${(event.totalAmountPaid || 0).toFixed(2)}
+                                  </Typography>
+                                  <Typography variant="body2" color={event.remainingBalance > 0 ? "error" : "textSecondary"}>
+                                    Remaining: ${(event.remainingBalance || 0).toFixed(2)}
+                                  </Typography>
+                                  <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 'medium' }}>
+                                    Total: ${event.eventTotal.toFixed(2)}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              
+                              {/* Expense Items */}
+                              {event.expenseItems.length > 0 && (
+                                <Box sx={{ ml: 2, mt: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Items ({event.expenseItems.length}):
+                                  </Typography>
+                                  {event.expenseItems.map((item, itemIndex) => (
+                                    <Typography key={itemIndex} variant="caption" display="block" color="textSecondary">
+                                      • {item.itemName}: ${item.amount.toFixed(2)}
+                                    </Typography>
+                                  ))}
+                                </Box>
+                              )}
+                            </ListItem>
+                            {index < filteredEvents.length - 1 && <Divider />}
                           </Box>
-                          <Box sx={{ textAlign: 'right' }}>
-                            <Chip 
-                              label={event.amountOwed > 0 ? 'Partially Paid' : event.amountPaid > 0 ? 'Paid' : 'Unpaid'}
-                              color={event.amountOwed > 0 ? 'warning' : event.amountPaid > 0 ? 'success' : 'error'}
-                              size="small"
-                              sx={{ mb: 1 }}
-                            />
-                            <Typography variant="body2" color="textSecondary">
-                              Your Share: ${event.userShare.toFixed(2)}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              Paid: ${event.amountPaid.toFixed(2)}
-                            </Typography>
-                            {event.amountOwed > 0 && (
-                              <Typography variant="body2" color="error">
-                                Still Owe: ${event.amountOwed.toFixed(2)}
-                              </Typography>
-                            )}
+                        ))}
+                      {expenseData.eventBreakdown.filter(event => event.eventOwner && event.eventOwner._id === userId).length === 0 && (
+                        <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
+                          No events owned by this user.
+                        </Typography>
+                      )}
+                    </List>
+                  </AccordionDetails>
+                </Accordion>
+
+                {/* Events Participated */}
+                <Accordion>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="h6">
+                      Events Participated ({expenseData.eventBreakdown.filter(event => !event.eventOwner || event.eventOwner._id !== userId).length})
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <List>
+                      {expenseData.eventBreakdown
+                        .filter(event => !event.eventOwner || event.eventOwner._id !== userId)
+                        .map((event, index, filteredEvents) => (
+                          <Box key={event.eventId}>
+                            <ListItem 
+                              sx={{ 
+                                px: 0, 
+                                flexDirection: 'column', 
+                                alignItems: 'stretch',
+                                cursor: onEventClick ? 'pointer' : 'default',
+                                '&:hover': onEventClick ? {
+                                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                                } : {}
+                              }}
+                              onClick={() => onEventClick && onEventClick(event.eventId)}
+                            >
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
+                                <Box sx={{ flexGrow: 1 }}>
+                                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                                    {event.eventTitle}
+                                  </Typography>
+                                  <Typography variant="body2" color="textSecondary">
+                                    {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''}
+                                  </Typography>
+                                  {event.eventOwner && (
+                                    <Typography variant="body2" sx={{ 
+                                      color: '#1976d2', 
+                                      fontWeight: 'medium',
+                                      fontSize: '0.75rem'
+                                    }}>
+                                      Owner: {event.eventOwner.name}
+                                    </Typography>
+                                  )}
+                                </Box>
+                                <Box sx={{ textAlign: 'right' }}>
+                                  <Chip 
+                                    label={event.amountPaid === 0 ? 'Unpaid' : event.amountPaid > event.userShare ? 'Overpaid' : event.amountOwed > 0 ? 'Partially Paid' : 'Paid'}
+                                    color={event.amountPaid === 0 ? 'error' : event.amountPaid > event.userShare ? 'info' : event.amountOwed > 0 ? 'warning' : 'success'}
+                                    size="small"
+                                    sx={{ mb: 1 }}
+                                  />
+                                  <Typography variant="body2" color="textSecondary">
+                                    Your Share: ${event.userShare.toFixed(2)}
+                                  </Typography>
+                                  <Typography variant="body2" color="textSecondary">
+                                    Paid: ${event.amountPaid.toFixed(2)}
+                                  </Typography>
+                                  {event.amountOwed > 0 && (
+                                    <Typography variant="body2" color="error">
+                                      Still Owe: ${event.amountOwed.toFixed(2)}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Box>
+                              
+                              {/* Expense Items */}
+                              {event.expenseItems.length > 0 && (
+                                <Box sx={{ ml: 2, mt: 1 }}>
+                                  <Typography variant="caption" color="textSecondary">
+                                    Items ({event.expenseItems.length}):
+                                  </Typography>
+                                  {event.expenseItems.map((item, itemIndex) => (
+                                    <Typography key={itemIndex} variant="caption" display="block" color="textSecondary">
+                                      • {item.itemName}: ${item.amount.toFixed(2)}
+                                    </Typography>
+                                  ))}
+                                  <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'medium' }}>
+                                    Event Total: ${event.eventTotal.toFixed(2)}
+                                  </Typography>
+                                </Box>
+                              )}
+                            </ListItem>
+                            {index < filteredEvents.length - 1 && <Divider />}
                           </Box>
-                        </Box>
-                        
-                        {/* Expense Items */}
-                        {event.expenseItems.length > 0 && (
-                          <Box sx={{ ml: 2, mt: 1 }}>
-                            <Typography variant="caption" color="textSecondary">
-                              Items ({event.expenseItems.length}):
-                            </Typography>
-                            {event.expenseItems.map((item, itemIndex) => (
-                              <Typography key={itemIndex} variant="caption" display="block" color="textSecondary">
-                                • {item.itemName}: ${item.amount.toFixed(2)}
-                              </Typography>
-                            ))}
-                            <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'medium' }}>
-                              Event Total: ${event.eventTotal.toFixed(2)}
-                            </Typography>
-                          </Box>
-                        )}
-                      </ListItem>
-                      {index < expenseData.eventBreakdown.length - 1 && <Divider />}
-                    </Box>
-                  ))}
-                </List>
+                        ))}
+                      {expenseData.eventBreakdown.filter(event => !event.eventOwner || event.eventOwner._id !== userId).length === 0 && (
+                        <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
+                          No events participated by this user.
+                        </Typography>
+                      )}
+                    </List>
+                  </AccordionDetails>
+                </Accordion>
               </Box>
             )}
 
@@ -313,7 +417,7 @@ function UserDetailView({ open, onClose, userId, onUserUpdated }) {
         <Button 
           onClick={handleSave} 
           variant="contained"
-          disabled={!userData.name || !userData.email}
+          disabled={!userData.name}
           fullWidth
           size="large"
           sx={{ py: 2 }}
