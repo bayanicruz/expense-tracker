@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Box, 
   Container, 
@@ -22,6 +22,7 @@ function App() {
   const [usersOpen, setUsersOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(true);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const usersListRef = useRef(null);
 
   const handleUsersClick = () => {
     setUsersOpen(!usersOpen);
@@ -55,6 +56,13 @@ function App() {
     }
   };
 
+  const handleDataChanged = () => {
+    // Refresh UsersList by calling its refresh method
+    if (usersListRef.current && usersListRef.current.refreshData) {
+      usersListRef.current.refreshData();
+    }
+  };
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Header />
@@ -67,6 +75,7 @@ function App() {
         }}>
           <Stack spacing={2}>
             <UsersList 
+              ref={usersListRef}
               isOpen={usersOpen}
               onToggle={handleUsersClick}
               onUserClick={handleUserClick}
@@ -75,6 +84,7 @@ function App() {
               isOpen={eventsOpen}
               onToggle={handleEventsClick}
               onEventClick={handleEventClick}
+              onDataChanged={handleDataChanged}
             />
           </Stack>
           

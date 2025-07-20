@@ -16,10 +16,12 @@ import {
   Autocomplete,
   CircularProgress,
   Divider,
+  Breadcrumbs,
+  Link
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
 
-function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
+function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUser, onBreadcrumbClick }) {
   const [eventData, setEventData] = useState({
     title: '',
     eventDate: '',
@@ -165,29 +167,34 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
   };
 
   const removeParticipant = async (userId) => {
-    try {
-      const updatedParticipants = participantDetails.filter(p => p._id !== userId);
-      const participantsForSave = updatedParticipants.map(p => ({
-        user: p._id,
-        amountPaid: p.amountPaid || 0
-      }));
-      
-      const response = await fetch(`/api/events/${eventId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          participants: participantsForSave
-        })
-      });
+    const participant = participantDetails.find(p => p._id === userId);
+    const participantName = participant ? participant.name || 'Unknown' : 'Unknown';
+    
+    if (window.confirm(`Are you sure you want to remove ${participantName} from this event? This action cannot be undone.`)) {
+      try {
+        const updatedParticipants = participantDetails.filter(p => p._id !== userId);
+        const participantsForSave = updatedParticipants.map(p => ({
+          user: p._id,
+          amountPaid: p.amountPaid || 0
+        }));
+        
+        const response = await fetch(`/api/events/${eventId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            participants: participantsForSave
+          })
+        });
 
-      if (response.ok) {
-        setParticipantDetails(updatedParticipants);
-        if (onEventUpdated) onEventUpdated();
+        if (response.ok) {
+          setParticipantDetails(updatedParticipants);
+          if (onEventUpdated) onEventUpdated();
+        }
+      } catch (error) {
+        console.error('Error removing participant:', error);
       }
-    } catch (error) {
-      console.error('Error removing participant:', error);
     }
   };
 
@@ -256,17 +263,23 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
   };
 
   const removeExpenseItem = async (itemId) => {
-    try {
-      const response = await fetch(`/api/expense-items/${itemId}`, {
-        method: 'DELETE'
-      });
+    const expenseItem = expenseItems.find(item => item._id === itemId);
+    const itemName = expenseItem ? expenseItem.itemName || 'Unknown item' : 'Unknown item';
+    const itemAmount = expenseItem ? `$${expenseItem.amount.toFixed(2)}` : '';
+    
+    if (window.confirm(`Are you sure you want to remove "${itemName}" ${itemAmount} from this event? This action cannot be undone.`)) {
+      try {
+        const response = await fetch(`/api/expense-items/${itemId}`, {
+          method: 'DELETE'
+        });
 
-      if (response.ok) {
-        setExpenseItems(prev => prev.filter(item => item._id !== itemId));
-        if (onEventUpdated) onEventUpdated();
+        if (response.ok) {
+          setExpenseItems(prev => prev.filter(item => item._id !== itemId));
+          if (onEventUpdated) onEventUpdated();
+        }
+      } catch (error) {
+        console.error('Error removing expense item:', error);
       }
-    } catch (error) {
-      console.error('Error removing expense item:', error);
     }
   };
 
@@ -358,6 +371,25 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ flexGrow: 1 }}>
+            {breadcrumbUser && (
+              <Breadcrumbs sx={{ mb: 1 }}>
+                <Link 
+                  component="button" 
+                  variant="body2" 
+                  onClick={() => onBreadcrumbClick ? onBreadcrumbClick() : onClose()}
+                  sx={{ 
+                    textDecoration: 'none',
+                    color: 'primary.main',
+                    '&:hover': { textDecoration: 'underline' }
+                  }}
+                >
+                  {breadcrumbUser.name}
+                </Link>
+                <Typography variant="body2" color="text.primary">
+                  {eventData.title || 'Event Details'}
+                </Typography>
+              </Breadcrumbs>
+            )}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <Typography variant="h5" component="div">
                 {eventData.title || 'Event Details'}
@@ -484,14 +516,33 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
                           value={participant.amountPaid || 0}
                           onChange={(e) => updatePaymentAmount(participant._id, e.target.value)}
                           inputProps={{ min: 0, step: 0.01 }}
-                          sx={{ width: '120px' }}
+                          sx={{ 
+                            width: '120px',
+                            '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                              display: 'none',
+                            },
+                            '& input[type=number]': {
+                              MozAppearance: 'textfield',
+                            },
+                          }}
+                          InputProps={{
+                            endAdornment: (participant.amountPaid || 0) > 0 && (
+                              <IconButton
+                                size="small"
+                                onClick={() => updatePaymentAmount(participant._id, 0)}
+                                sx={{ p: 0.5 }}
+                              >
+                                <CloseIcon fontSize="small" />
+                              </IconButton>
+                            ),
+                          }}
                         />
                         <IconButton 
                           onClick={() => removeParticipant(participant._id)}
                           color="error"
                           size="small"
                         >
-                          <CloseIcon />
+                          <DeleteIcon />
                         </IconButton>
                       </Box>
                     </Box>
@@ -617,8 +668,27 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
                   value={newExpenseItem.amount}
                   onChange={(e) => handleNewExpenseChange('amount', e.target.value)}
                   size="small"
-                  sx={{ width: '120px' }}
+                  sx={{ 
+                    width: '120px',
+                    '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                      display: 'none',
+                    },
+                    '& input[type=number]': {
+                      MozAppearance: 'textfield',
+                    },
+                  }}
                   inputProps={{ min: 0, step: 0.01 }}
+                  InputProps={{
+                    endAdornment: newExpenseItem.amount && parseFloat(newExpenseItem.amount) > 0 && (
+                      <IconButton
+                        size="small"
+                        onClick={() => handleNewExpenseChange('amount', '')}
+                        sx={{ p: 0.5 }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    ),
+                  }}
                 />
                 <IconButton 
                   onClick={addExpenseItem}
@@ -633,23 +703,29 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated }) {
         </Stack>
       </DialogContent>
       
-      <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
+      <DialogActions sx={{ justifyContent: 'space-between', p: 2 }}>
         <Button 
           onClick={deleteEvent}
-          variant="outlined"
-          color="error"
+          variant="text"
           disabled={loading}
-          fullWidth
-          size="large"
-          sx={{ py: 2 }}
+          size="small"
+          sx={{ 
+            color: 'text.disabled',
+            fontSize: '0.75rem',
+            textTransform: 'none',
+            '&:hover': {
+              color: 'error.main',
+              backgroundColor: 'transparent'
+            }
+          }}
         >
           Delete Event
         </Button>
         <Button 
           onClick={handleClose}
-          fullWidth
+          variant="contained"
           size="large"
-          sx={{ py: 2 }}
+          sx={{ px: 4 }}
         >
           Close
         </Button>

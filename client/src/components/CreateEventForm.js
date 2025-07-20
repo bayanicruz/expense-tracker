@@ -523,8 +523,27 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                       type="number"
                       value={item.amount}
                       onChange={(e) => handleExpenseChange(index, 'amount', e.target.value)}
-                      sx={{ width: '120px' }}
+                      sx={{ 
+                        width: '120px',
+                        '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                          display: 'none',
+                        },
+                        '& input[type=number]': {
+                          MozAppearance: 'textfield',
+                        },
+                      }}
                       inputProps={{ min: 0, step: 0.01 }}
+                      InputProps={{
+                        endAdornment: item.amount && parseFloat(item.amount) > 0 && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleExpenseChange(index, 'amount', '')}
+                            sx={{ p: 0.5 }}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        ),
+                      }}
                     />
                     <IconButton 
                       onClick={() => removeExpenseItem(index)}

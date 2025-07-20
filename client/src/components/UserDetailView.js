@@ -14,8 +14,12 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Chip
+  Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 
 const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEventClick }, ref) => {
   const [userData, setUserData] = useState({
@@ -117,6 +121,12 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
   };
 
   const deleteUser = async () => {
+    // Check if user has any events/expenses associated
+    if (expenseData.eventBreakdown.length > 0) {
+      alert(`Cannot delete user: ${userData.name || 'This user'} has ${expenseData.eventBreakdown.length} event${expenseData.eventBreakdown.length !== 1 ? 's' : ''} associated with them. Please remove them from all events first.`);
+      return;
+    }
+
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       try {
         setLoading(true);
@@ -128,9 +138,13 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
         if (response.ok) {
           handleClose();
           if (onUserUpdated) onUserUpdated();
+        } else {
+          const errorData = await response.json();
+          alert(`Failed to delete user: ${errorData.error || 'Unknown error'}`);
         }
       } catch (error) {
         console.error('Error deleting user:', error);
+        alert('Error deleting user. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -206,164 +220,251 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
               Expense Summary
             </Typography>
             
-            {/* Total Owed Display */}
-            <Box sx={{ 
-              p: 3, 
-              backgroundColor: expenseData.totalOwed > 0 ? '#ffebee' : '#e8f5e8', 
-              borderRadius: 2, 
-              border: `1px solid ${expenseData.totalOwed > 0 ? '#f44336' : '#4caf50'}`,
-              textAlign: 'center',
-              mb: 3
-            }}>
-              <Typography variant="h4" sx={{ 
-                mb: 1, 
-                color: expenseData.totalOwed > 0 ? '#d32f2f' : '#2e7d32' 
-              }}>
-                ${expenseData.totalOwed.toFixed(2)}
-              </Typography>
-              <Typography variant="h6" sx={{ 
-                color: expenseData.totalOwed > 0 ? '#d32f2f' : '#2e7d32' 
-              }}>
-                {expenseData.totalOwed > 0 ? 'Total Owed' : 'All Paid Up!'}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Across {expenseData.eventBreakdown.filter(event => !event.eventOwner || event.eventOwner._id !== userId).length} participated event{expenseData.eventBreakdown.filter(event => !event.eventOwner || event.eventOwner._id !== userId).length !== 1 ? 's' : ''}
-              </Typography>
-            </Box>
-
-            {/* Events List */}
-            {expenseData.eventBreakdown.length > 0 && (
-              <Box>
-                <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                  Events ({expenseData.eventBreakdown.length})
-                </Typography>
-                
-                <List>
-                  {expenseData.eventBreakdown.map((event, index) => {
-                    const isOwner = event.eventOwner && event.eventOwner._id === userId;
-                    return (
-                      <Box key={event.eventId}>
-                        <ListItem 
-                          sx={{ 
-                            px: 0, 
-                            flexDirection: 'column', 
-                            alignItems: 'stretch',
-                            cursor: onEventClick ? 'pointer' : 'default',
-                            '&:hover': onEventClick ? {
-                              backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                            } : {}
-                          }}
-                          onClick={() => onEventClick && onEventClick(event.eventId)}
-                        >
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
-                            <Box sx={{ flexGrow: 1 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                  {event.eventTitle}
-                                </Typography>
-                                {isOwner && (
-                                  <Typography variant="caption" sx={{ 
-                                    color: '#1976d2', 
-                                    fontWeight: 'medium',
-                                    backgroundColor: '#e3f2fd',
-                                    padding: '2px 6px',
-                                    borderRadius: '3px',
-                                    fontSize: '0.7rem'
-                                  }}>
-                                    Owner
-                                  </Typography>
-                                )}
-                                {(event.remainingBalance !== undefined && event.remainingBalance === 0 && event.eventTotal > 0) && (
-                                  <Typography variant="caption" sx={{ 
-                                    color: '#4caf50', 
-                                    fontWeight: 'medium',
-                                    backgroundColor: '#e8f5e8',
-                                    padding: '2px 4px',
-                                    borderRadius: '3px',
-                                    fontSize: '0.7rem'
-                                  }}>
-                                    Settled
-                                  </Typography>
-                                )}
-                              </Box>
-                              <Typography variant="body2" color="textSecondary">
-                                {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ textAlign: 'right' }}>
-                              {isOwner ? (
-                                <>
-                                  <Typography variant="body2" color="textSecondary">
-                                    Split: ${(event.splitPerPerson || 0).toFixed(2)}
-                                  </Typography>
-                                  <Typography variant="body2" color="textSecondary">
-                                    Collected: ${(event.totalAmountPaid || 0).toFixed(2)}
-                                  </Typography>
-                                  <Typography variant="body2" color={event.remainingBalance > 0 ? "error" : "textSecondary"}>
-                                    Remaining: ${(event.remainingBalance || 0).toFixed(2)}
-                                  </Typography>
-                                  <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 'medium' }}>
-                                    Total: ${event.eventTotal.toFixed(2)}
-                                  </Typography>
-                                </>
-                              ) : (
-                                <>
-                                  <Chip 
-                                    label={event.amountPaid === 0 ? 'Unpaid' : event.amountPaid > event.userShare ? 'Overpaid' : event.amountOwed > 0 ? 'Partially Paid' : 'Paid'}
-                                    color={event.amountPaid === 0 ? 'error' : event.amountPaid > event.userShare ? 'info' : event.amountOwed > 0 ? 'warning' : 'success'}
-                                    size="small"
-                                    sx={{ mb: 1 }}
-                                  />
-                                  <Typography variant="body2" color="textSecondary">
-                                    Share: ${event.userShare.toFixed(2)}
-                                  </Typography>
-                                  <Typography variant="body2" color="textSecondary">
-                                    Paid: ${event.amountPaid.toFixed(2)}
-                                  </Typography>
-                                  {event.amountOwed > 0 && (
-                                    <Typography variant="body2" color="error">
-                                      Still Owe: ${event.amountOwed.toFixed(2)}
-                                    </Typography>
-                                  )}
-                                </>
-                              )}
-                            </Box>
-                          </Box>
-                        </ListItem>
-                        {index < expenseData.eventBreakdown.length - 1 && <Divider />}
-                      </Box>
-                    );
-                  })}
-                </List>
-              </Box>
-            )}
-
-            {expenseData.eventBreakdown.length === 0 && (
+            {expenseData.eventBreakdown.length === 0 ? (
               <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
                 No events found for this user.
               </Typography>
+            ) : (
+              <Stack spacing={2}>
+                {/* Events Participated Accordion */}
+                {(() => {
+                  const participatedEvents = expenseData.eventBreakdown
+                    .filter(event => !event.eventOwner || event.eventOwner._id !== userId)
+                    .sort((a, b) => {
+                      // Determine payment status for sorting
+                      const getPaymentStatus = (event) => {
+                        const paid = event.amountPaid || 0;
+                        const share = event.userShare || 0;
+                        const roundedPaid = Math.round(paid * 100) / 100;
+                        const roundedShare = Math.round(share * 100) / 100;
+                        
+                        if (roundedPaid === 0) return 'unpaid';
+                        if (roundedPaid > roundedShare) return 'overpaid';
+                        if (roundedPaid >= roundedShare) return 'paid';
+                        return 'partial';
+                      };
+                      
+                      const statusA = getPaymentStatus(a);
+                      const statusB = getPaymentStatus(b);
+                      
+                      // Sort order: unpaid, partial, overpaid, paid
+                      const statusOrder = { 'unpaid': 0, 'partial': 1, 'overpaid': 2, 'paid': 3 };
+                      
+                      if (statusOrder[statusA] !== statusOrder[statusB]) {
+                        return statusOrder[statusA] - statusOrder[statusB];
+                      }
+                      
+                      // If same status, sort by date (most recent first)
+                      return new Date(b.eventDate) - new Date(a.eventDate);
+                    });
+                  return participatedEvents.length > 0 && (
+                    <Accordion>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', pr: 2 }}>
+                          <Typography variant="h6">
+                            Events Participated ({participatedEvents.length})
+                          </Typography>
+                          <Box sx={{ 
+                            px: 2, 
+                            py: 1, 
+                            backgroundColor: expenseData.totalOwed > 0 ? '#ffebee' : '#e8f5e8', 
+                            borderRadius: 1, 
+                            border: `1px solid ${expenseData.totalOwed > 0 ? '#f44336' : '#4caf50'}`
+                          }}>
+                            <Typography variant="body2" sx={{ 
+                              color: expenseData.totalOwed > 0 ? '#d32f2f' : '#2e7d32',
+                              fontWeight: 'medium'
+                            }}>
+                              {expenseData.totalOwed > 0 ? `$${expenseData.totalOwed.toFixed(2)} Outstanding` : 'All Paid Up!'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <List sx={{ p: 0 }}>
+                          {participatedEvents.map((event, index) => (
+                            <Box key={event.eventId}>
+                              <ListItem 
+                                sx={{ 
+                                  px: 0, 
+                                  flexDirection: 'column', 
+                                  alignItems: 'stretch',
+                                  cursor: onEventClick ? 'pointer' : 'default',
+                                  '&:hover': onEventClick ? {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                                  } : {}
+                                }}
+                                onClick={() => onEventClick && onEventClick(event.eventId)}
+                              >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
+                                  <Box sx={{ flexGrow: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                                        {event.eventTitle}
+                                      </Typography>
+                                    </Box>
+                                    <Typography variant="body2" color="textSecondary">
+                                      {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''} • Owner: {event.eventOwner ? event.eventOwner.name : 'Unknown'}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ textAlign: 'right' }}>
+                                    <Chip 
+                                      label={(() => {
+                                        const paid = event.amountPaid || 0;
+                                        const share = event.userShare || 0;
+                                        const roundedPaid = Math.round(paid * 100) / 100;
+                                        const roundedShare = Math.round(share * 100) / 100;
+                                        
+                                        if (roundedPaid === 0) return 'Unpaid';
+                                        if (roundedPaid > roundedShare) return 'Overpaid';
+                                        if (roundedPaid >= roundedShare) return 'Paid';
+                                        return 'Partially Paid';
+                                      })()}
+                                      color={(() => {
+                                        const paid = event.amountPaid || 0;
+                                        const share = event.userShare || 0;
+                                        const roundedPaid = Math.round(paid * 100) / 100;
+                                        const roundedShare = Math.round(share * 100) / 100;
+                                        
+                                        if (roundedPaid === 0) return 'error';
+                                        if (roundedPaid > roundedShare) return 'info';
+                                        if (roundedPaid >= roundedShare) return 'success';
+                                        return 'warning';
+                                      })()}
+                                      size="small"
+                                      sx={{ mb: 1 }}
+                                    />
+                                    <Typography variant="body2" color="textSecondary">
+                                      Share: ${event.userShare.toFixed(2)}
+                                    </Typography>
+                                    <Typography variant="body2" color="textSecondary">
+                                      Paid: ${event.amountPaid.toFixed(2)}
+                                    </Typography>
+                                    {event.amountOwed > 0 && (
+                                      <Typography variant="body2" color="error">
+                                        Still Owe: ${event.amountOwed.toFixed(2)}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </Box>
+                              </ListItem>
+                              {index < participatedEvents.length - 1 && <Divider />}
+                            </Box>
+                          ))}
+                        </List>
+                      </AccordionDetails>
+                    </Accordion>
+                  );
+                })()}
+
+                {/* Events Owned Accordion */}
+                {(() => {
+                  const ownedEvents = expenseData.eventBreakdown.filter(event => event.eventOwner && event.eventOwner._id === userId);
+                  const totalToCollect = ownedEvents.reduce((sum, event) => sum + (event.remainingBalance || 0), 0);
+                  
+                  return ownedEvents.length > 0 && (
+                    <Accordion>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', pr: 2 }}>
+                          <Typography variant="h6">
+                            Events Owned ({ownedEvents.length})
+                          </Typography>
+                          <Box sx={{ 
+                            px: 2, 
+                            py: 1, 
+                            backgroundColor: totalToCollect > 0 ? '#fff3e0' : '#e8f5e8', 
+                            borderRadius: 1, 
+                            border: `1px solid ${totalToCollect > 0 ? '#ff9800' : '#4caf50'}`
+                          }}>
+                            <Typography variant="body2" sx={{ 
+                              color: totalToCollect > 0 ? '#e65100' : '#2e7d32',
+                              fontWeight: 'medium'
+                            }}>
+                              {totalToCollect > 0 ? `$${totalToCollect.toFixed(2)} Pending` : 'All Collected!'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <List sx={{ p: 0 }}>
+                          {ownedEvents.map((event, index) => (
+                            <Box key={event.eventId}>
+                              <ListItem 
+                                sx={{ 
+                                  px: 0, 
+                                  flexDirection: 'column', 
+                                  alignItems: 'stretch',
+                                  cursor: onEventClick ? 'pointer' : 'default',
+                                  '&:hover': onEventClick ? {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                                  } : {}
+                                }}
+                                onClick={() => onEventClick && onEventClick(event.eventId)}
+                              >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
+                                  <Box sx={{ flexGrow: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                                        {event.eventTitle}
+                                      </Typography>
+                                    </Box>
+                                    <Typography variant="body2" color="textSecondary">
+                                      {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ textAlign: 'right' }}>
+                                    <Typography variant="body2" color="textSecondary">
+                                      Split: ${(event.splitPerPerson || 0).toFixed(2)}
+                                    </Typography>
+                                    <Typography variant="body2" color="textSecondary">
+                                      Collected: ${(event.totalAmountPaid || 0).toFixed(2)}
+                                    </Typography>
+                                    <Typography variant="body2" color={event.remainingBalance > 0 ? "error" : "textSecondary"}>
+                                      Pending: ${(event.remainingBalance || 0).toFixed(2)}
+                                    </Typography>
+                                    <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 'medium' }}>
+                                      Total: ${event.eventTotal.toFixed(2)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              </ListItem>
+                              {index < ownedEvents.length - 1 && <Divider />}
+                            </Box>
+                          ))}
+                        </List>
+                      </AccordionDetails>
+                    </Accordion>
+                  );
+                })()}
+              </Stack>
             )}
           </Box>
         </Stack>
       </DialogContent>
       
-      <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
+      <DialogActions sx={{ justifyContent: 'space-between', p: 2 }}>
         <Button 
           onClick={deleteUser}
-          variant="outlined"
-          color="error"
+          variant="text"
           disabled={loading}
-          fullWidth
-          size="large"
-          sx={{ py: 2 }}
+          size="small"
+          sx={{ 
+            color: 'text.disabled',
+            fontSize: '0.75rem',
+            textTransform: 'none',
+            '&:hover': {
+              color: 'error.main',
+              backgroundColor: 'transparent'
+            }
+          }}
         >
           Delete User
         </Button>
         <Button 
           onClick={handleClose}
-          fullWidth
+          variant="contained"
           size="large"
-          sx={{ py: 2 }}
+          sx={{ px: 4 }}
         >
           Close
         </Button>

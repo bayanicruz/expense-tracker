@@ -15,6 +15,7 @@ const getAllUsers = async (req, res) => {
         }).populate('participants.user', 'name');
 
         let totalOwed = 0;
+        let totalOwedToUser = 0;
 
         for (const event of events) {
           // Get expense items for this event
@@ -31,9 +32,20 @@ const getAllUsers = async (req, res) => {
           totalOwed += amountOwed;
         }
 
+        // Calculate amount owed to user from events they own
+        const ownedEvents = await Event.find({ owner: user._id });
+        for (const event of ownedEvents) {
+          const expenseItems = await ExpenseItem.find({ eventId: event._id });
+          const eventTotal = expenseItems.reduce((sum, item) => sum + item.amount, 0);
+          const totalAmountPaid = event.participants.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
+          const remainingBalance = Math.max(0, eventTotal - totalAmountPaid);
+          totalOwedToUser += remainingBalance;
+        }
+
         return {
           ...user.toObject(),
-          runningBalance: totalOwed
+          runningBalance: totalOwed,
+          amountOwedToUser: totalOwedToUser
         };
       })
     );

@@ -1,22 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { Box } from '@mui/material';
 import ExpandableList from './ExpandableList';
 import CreateUserForm from './CreateUserForm';
 import UserDetailView from './UserDetailView';
 import EventDetailView from './EventDetailView';
 
-function UsersList({ isOpen, onToggle, onUserClick }) {
+const UsersList = forwardRef(({ isOpen, onToggle, onUserClick }, ref) => {
   const [users, setUsers] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showUserDetail, setShowUserDetail] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [showEventDetail, setShowEventDetail] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
     }
   }, [isOpen]);
+
+  useImperativeHandle(ref, () => ({
+    refreshData: () => {
+      fetchUsers();
+    }
+  }));
 
   const fetchUsers = async () => {
     try {
@@ -43,11 +51,60 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
 
   const getUserText = (user) => {
     const name = user.name || user.username || `User ${user._id}`;
-    const balance = user.runningBalance || 0;
+    const owes = user.runningBalance || 0;
+    const owedToUser = user.amountOwedToUser || 0;
+    
+    const formatBalance = (owesAmount, owedAmount) => {
+      // Round to 2 decimal places and ensure we're working with actual numbers
+      const owesRounded = Math.round((owesAmount || 0) * 100) / 100;
+      const owedRounded = Math.round((owedAmount || 0) * 100) / 100;
+      
+      // If both amounts are zero, return empty/null for no subtext
+      if (owesRounded <= 0 && owedRounded <= 0) {
+        return null;
+      }
+      
+      return (
+        <Box component="span">
+          {/* What user needs to pay */}
+          {owesRounded > 0 && (
+            <>
+              <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
+                Outstanding
+              </Box>
+              {' '}
+              <Box component="span" sx={{ color: 'error.main', fontWeight: 'medium' }}>
+                ${owesRounded.toFixed(2)}
+              </Box>
+            </>
+          )}
+          
+          {/* Separator if both amounts exist */}
+          {owesRounded > 0 && owedRounded > 0 && (
+            <Box component="span" sx={{ color: 'text.secondary', mx: 0.5 }}>
+              •
+            </Box>
+          )}
+          
+          {/* What user is waiting to collect */}
+          {owedRounded > 0 && (
+            <>
+              <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
+                Collecting
+              </Box>
+              {' '}
+              <Box component="span" sx={{ color: 'warning.main', fontWeight: 'medium' }}>
+                ${owedRounded.toFixed(2)}
+              </Box>
+            </>
+          )}
+        </Box>
+      );
+    };
     
     return {
       primary: name,
-      secondary: `Owed: $${balance.toFixed(2)}`
+      secondary: formatBalance(owes, owedToUser)
     };
   };
 
@@ -56,6 +113,7 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
       setShowCreateForm(true);
     } else {
       setSelectedUserId(item._id);
+      setSelectedUser(item);
       setShowUserDetail(true);
       onUserClick && onUserClick(item);
     }
@@ -110,12 +168,20 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
       />
       <EventDetailView 
         open={showEventDetail}
-        onClose={() => setShowEventDetail(false)}
+        onClose={() => {
+          setShowEventDetail(false);
+          setSelectedUser(null);
+        }}
         eventId={selectedEventId}
         onEventUpdated={handleEventUpdated}
+        breadcrumbUser={selectedUser}
+        onBreadcrumbClick={() => {
+          setShowEventDetail(false);
+          setShowUserDetail(true);
+        }}
       />
     </>
   );
-}
+});
 
 export default UsersList;

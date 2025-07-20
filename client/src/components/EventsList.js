@@ -4,7 +4,7 @@ import ExpandableList from './ExpandableList';
 import CreateEventForm from './CreateEventForm';
 import EventDetailView from './EventDetailView';
 
-function EventsList({ isOpen, onToggle, onEventClick }) {
+function EventsList({ isOpen, onToggle, onEventClick, onDataChanged }) {
   const [events, setEvents] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEventDetail, setShowEventDetail] = useState(false);
@@ -32,7 +32,22 @@ function EventsList({ isOpen, onToggle, onEventClick }) {
       }
       
       const data = await response.json();
-      setEvents(data);
+      
+      // Sort events: unsettled events first, then settled events
+      const sortedEvents = data.sort((a, b) => {
+        const aSettled = (a.remainingBalance || 0) === 0 && (a.totalAmount || 0) > 0;
+        const bSettled = (b.remainingBalance || 0) === 0 && (b.totalAmount || 0) > 0;
+        
+        // If one is settled and the other isn't, put unsettled first
+        if (aSettled !== bSettled) {
+          return aSettled ? 1 : -1;
+        }
+        
+        // If both have same settled status, sort by date (most recent first)
+        return new Date(b.eventDate) - new Date(a.eventDate);
+      });
+      
+      setEvents(sortedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
       setEvents([]); // Set empty array on error
@@ -66,7 +81,29 @@ function EventsList({ isOpen, onToggle, onEventClick }) {
             )}
           </Box>
         }
-        secondary={`Owner: ${owner} • Remaining: $${remainingBalance.toFixed(2)}`}
+        secondary={
+          <Box component="span">
+            <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
+              Owner:
+            </Box>
+            {' '}
+            <Box component="span" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
+              {owner}
+            </Box>
+            {remainingBalance > 0 && (
+              <>
+                {' • '}
+                <Box component="span" sx={{ color: 'error.main', fontWeight: 'medium' }}>
+                  ${remainingBalance.toFixed(2)}
+                </Box>
+                {' '}
+                <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
+                  remaining
+                </Box>
+              </>
+            )}
+          </Box>
+        }
       />
     );
   };
@@ -83,10 +120,16 @@ function EventsList({ isOpen, onToggle, onEventClick }) {
 
   const handleEventCreated = () => {
     fetchEvents(); // Refresh the events list
+    if (onDataChanged) {
+      onDataChanged(); // Also refresh other lists (like UsersList)
+    }
   };
 
   const handleEventUpdated = () => {
     fetchEvents(); // Refresh the events list when event is updated
+    if (onDataChanged) {
+      onDataChanged(); // Also refresh other lists (like UsersList) when event is updated/deleted
+    }
   };
 
   return (
