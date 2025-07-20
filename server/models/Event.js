@@ -11,10 +11,22 @@ const eventSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  participants: [{
+  owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  participants: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    amountPaid: {
+      type: Number,
+      default: 0,
+      min: 0
+    }
   }],
   settled: {
     type: Boolean,

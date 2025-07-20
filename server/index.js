@@ -6,6 +6,9 @@ const cors = require('cors');
 // Import routes
 const userRoutes = require('./routes/users');
 const eventRoutes = require('./routes/events');
+const expenseItemRoutes = require('./routes/expense-items');
+const analyticsRoutes = require('./routes/analytics');
+const exportRoutes = require('./routes/export');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,6 +32,9 @@ db.once('open', () => {
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/expense-items', expenseItemRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/export', exportRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
