@@ -47,10 +47,12 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
     }
   }, [open, eventId]);
 
+  const API_URL = process.env.REACT_APP_API_URL || '';
+
   const fetchEventDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/events/${eventId}`);
+      const response = await fetch(`${API_URL}/api/events/${eventId}`);
       if (response.ok) {
         const event = await response.json();
         setEventData(event);
@@ -73,7 +75,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
           } else if (typeof firstParticipant === 'string') {
             // Participants are just IDs, need to fetch details
             const participantPromises = event.participants.map(async (participantId) => {
-              const userResponse = await fetch(`/api/users/${participantId}`);
+              const userResponse = await fetch(`${API_URL}/api/users/${participantId}`);
               const user = userResponse.ok ? await userResponse.json() : null;
               return user ? { ...user, amountPaid: 0 } : null;
             });
@@ -98,7 +100,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
 
   const fetchExpenseItems = async () => {
     try {
-      const response = await fetch(`/api/expense-items?eventId=${eventId}`);
+      const response = await fetch(`${API_URL}/api/expense-items?eventId=${eventId}`);
       if (response.ok) {
         const items = await response.json();
         setExpenseItems(items);
@@ -116,7 +118,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
 
     setUserSearchLoading(true);
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch(`${API_URL}/api/users`);
       if (response.ok) {
         const users = await response.json();
         const filteredUsers = users.filter(user => 
@@ -144,7 +146,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
         amountPaid: p.amountPaid || 0
       }));
       
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetch(`${API_URL}/api/events/${eventId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +180,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
           amountPaid: p.amountPaid || 0
         }));
         
-        const response = await fetch(`/api/events/${eventId}`, {
+        const response = await fetch(`${API_URL}/api/events/${eventId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -200,7 +202,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
 
   const updatePaymentAmount = async (participantId, newAmount) => {
     try {
-      const response = await fetch(`/api/events/${eventId}/participants/${participantId}/payment`, {
+      const response = await fetch(`${API_URL}/api/events/${eventId}/participants/${participantId}/payment`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -238,7 +240,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
     }
 
     try {
-      const response = await fetch('/api/expense-items', {
+      const response = await fetch(`${API_URL}/api/expense-items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -269,7 +271,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
     
     if (window.confirm(`Are you sure you want to remove "${itemName}" ${itemAmount} from this event? This action cannot be undone.`)) {
       try {
-        const response = await fetch(`/api/expense-items/${itemId}`, {
+        const response = await fetch(`${API_URL}/api/expense-items/${itemId}`, {
           method: 'DELETE'
         });
 
@@ -292,14 +294,14 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
         // Delete all expense items for this event
         for (const item of expenseItems) {
           if (!item.isNew) { // Only delete existing items
-            await fetch(`/api/expense-items/${item._id}`, {
+            await fetch(`${API_URL}/api/expense-items/${item._id}`, {
               method: 'DELETE'
             });
           }
         }
         
         // Delete the event
-        const response = await fetch(`/api/events/${eventId}`, {
+        const response = await fetch(`${API_URL}/api/events/${eventId}`, {
           method: 'DELETE'
         });
         

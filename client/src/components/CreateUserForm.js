@@ -50,7 +50,8 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
     }
 
     try {
-      const response = await fetch('/api/users', {
+      const API_URL = process.env.REACT_APP_API_URL || '';
+      const response = await fetch(`${API_URL}/api/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

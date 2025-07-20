@@ -58,8 +58,9 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
     try {
       setLoading(true);
       
+      const API_URL = process.env.REACT_APP_API_URL || '';
       // Call the purge API
-      const response = await fetch('/api/analytics/purge-all', {
+      const response = await fetch(`${API_URL}/api/analytics/purge-all`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

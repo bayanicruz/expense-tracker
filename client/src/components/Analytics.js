@@ -28,9 +28,10 @@ function Analytics() {
     try {
       setLoading(true);
       setError(null);
+      const API_URL = process.env.REACT_APP_API_URL || '';
       console.log('Fetching analytics from /api/analytics...');
       
-      const response = await fetch('/api/analytics');
+      const response = await fetch(`${API_URL}/api/analytics`);
       console.log('Analytics response status:', response.status);
       
       if (response.ok) {

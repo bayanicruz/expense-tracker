@@ -16,9 +16,11 @@ function EventsList({ isOpen, onToggle, onEventClick, onDataChanged }) {
     }
   }, [isOpen]);
 
+  const API_URL = process.env.REACT_APP_API_URL || '';
+
   const fetchEvents = async () => {
     try {
-      const response = await fetch('/api/events');
+      const response = await fetch(`${API_URL}/api/events`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

@@ -15,7 +15,8 @@ function ExportButton() {
     try {
       setLoading(true);
       
-      const response = await fetch('/api/export/csv');
+      const API_URL = process.env.REACT_APP_API_URL || '';
+      const response = await fetch(`${API_URL}/api/export/csv`);
       
       if (!response.ok) {
         throw new Error(`Export failed: ${response.status}`);

@@ -26,9 +26,11 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick }, ref) => {
     }
   }));
 
+  const API_URL = process.env.REACT_APP_API_URL || '';
+
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch(`${API_URL}/api/users`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

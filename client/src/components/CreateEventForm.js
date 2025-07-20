@@ -69,7 +69,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
 
     setUserSearchLoading(true);
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users`);
       if (response.ok) {
         const users = await response.json();
         const filteredUsers = users.filter(user => 
@@ -92,7 +92,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
 
     setOwnerSearchLoading(true);
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users`);
       if (response.ok) {
         const users = await response.json();
         const filteredUsers = users.filter(user => 
@@ -167,7 +167,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
 
   const addAllParticipants = async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users`);
       if (response.ok) {
         const users = await response.json();
         // Filter out users already selected and the selected owner
@@ -205,7 +205,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   const handleSubmit = async () => {
     try {
       // Create event first
-      const eventResponse = await fetch('/api/events', {
+      const eventResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -225,7 +225,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
       );
 
       for (const item of validExpenseItems) {
-        await fetch('/api/expense-items', {
+        await fetch(`${process.env.REACT_APP_API_URL}/api/expense-items`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -251,7 +251,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
           );
           
           if (ownerParticipant) {
-            await fetch(`/api/events/${createdEvent._id}/participants/${selectedOwner._id}/payment`, {
+            await fetch(`${process.env.REACT_APP_API_URL}/api/events/${createdEvent._id}/participants/${selectedOwner._id}/payment`, {
               method: 'PATCH',
               headers: {
                 'Content-Type': 'application/json',

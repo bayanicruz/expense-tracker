@@ -55,10 +55,12 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
     }
   }));
 
+  const API_URL = process.env.REACT_APP_API_URL || '';
+
   const fetchUserDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/users/${userId}`);
+      const response = await fetch(`${API_URL}/api/users/${userId}`);
       if (response.ok) {
         const user = await response.json();
         setUserData(user);
@@ -73,7 +75,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
 
   const fetchUserExpenses = async () => {
     try {
-      const response = await fetch(`/api/users/${userId}/expenses`);
+      const response = await fetch(`${API_URL}/api/users/${userId}/expenses`);
       if (response.ok) {
         const data = await response.json();
         setExpenseData({
@@ -101,7 +103,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
     }
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`${API_URL}/api/users/${userId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -131,7 +133,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
       try {
         setLoading(true);
         
-        const response = await fetch(`/api/users/${userId}`, {
+        const response = await fetch(`${API_URL}/api/users/${userId}`, {
           method: 'DELETE'
         });
         
