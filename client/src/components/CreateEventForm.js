@@ -32,6 +32,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   
   const [userSearch, setUserSearch] = useState('');
   const [availableUsers, setAvailableUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [selectedParticipants, setSelectedParticipants] = useState([]);
   const [userSearchLoading, setUserSearchLoading] = useState(false);
 
@@ -146,6 +147,37 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
     }));
   };
 
+  const addAllParticipants = async () => {
+    try {
+      const response = await fetch('/api/users');
+      if (response.ok) {
+        const users = await response.json();
+        // Filter out users already selected and the selected owner
+        const newParticipants = users.filter(user => 
+          !selectedParticipants.find(p => p._id === user._id) &&
+          (!selectedOwner || user._id !== selectedOwner._id)
+        );
+        
+        setSelectedParticipants(prev => [...prev, ...newParticipants]);
+        setEventData(prev => ({
+          ...prev,
+          participants: [...prev.participants, ...newParticipants.map(u => u._id)]
+        }));
+        setAllUsers(users);
+      }
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+    }
+  };
+
+  const removeAllParticipants = () => {
+    setSelectedParticipants([]);
+    setEventData(prev => ({
+      ...prev,
+      participants: []
+    }));
+  };
+
   const removeExpenseItem = (index) => {
     if (expenseItems.length > 1) {
       setExpenseItems(prev => prev.filter((_, i) => i !== index));
@@ -195,6 +227,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
       setSelectedOwner(null);
       setUserSearch('');
       setAvailableUsers([]);
+      setAllUsers([]);
       setOwnerSearch('');
       setAvailableOwners([]);
       
@@ -228,6 +261,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
     setSelectedOwner(null);
     setUserSearch('');
     setAvailableUsers([]);
+    setAllUsers([]);
     setOwnerSearch('');
     setAvailableOwners([]);
     onClose();
@@ -330,9 +364,29 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
 
           {/* Participants Section */}
           <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Participants
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">
+                Participants
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={addAllParticipants}
+                >
+                  Add All Users
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  color="error"
+                  onClick={removeAllParticipants}
+                  disabled={selectedParticipants.length === 0}
+                >
+                  Remove All
+                </Button>
+              </Box>
+            </Box>
             
             <Autocomplete
               freeSolo
