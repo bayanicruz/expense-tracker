@@ -73,8 +73,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
       if (response.ok) {
         const users = await response.json();
         const filteredUsers = users.filter(user => 
-          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
         );
         setAvailableUsers(filteredUsers);
       }
@@ -97,8 +96,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
       if (response.ok) {
         const users = await response.json();
         const filteredUsers = users.filter(user => 
-          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
         );
         setAvailableOwners(filteredUsers);
       }
@@ -115,16 +113,31 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
       ...prev,
       owner: user._id
     }));
+    
+    // Automatically add owner as a participant if not already added
+    if (!selectedParticipants.find(p => p._id === user._id)) {
+      setSelectedParticipants(prev => [...prev, user]);
+      setEventData(prev => ({
+        ...prev,
+        participants: [...prev.participants, user._id]
+      }));
+    }
+    
     setOwnerSearch('');
     setAvailableOwners([]);
   };
 
   const removeOwner = () => {
+    if (selectedOwner) {
+      // Remove owner from participants as well
+      setSelectedParticipants(prev => prev.filter(p => p._id !== selectedOwner._id));
+      setEventData(prev => ({
+        ...prev,
+        owner: '',
+        participants: prev.participants.filter(id => id !== selectedOwner._id)
+      }));
+    }
     setSelectedOwner(null);
-    setEventData(prev => ({
-      ...prev,
-      owner: ''
-    }));
   };
 
   const addParticipant = (user) => {
@@ -140,6 +153,11 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   };
 
   const removeParticipant = (userId) => {
+    // Prevent removing the owner from participants
+    if (selectedOwner && selectedOwner._id === userId) {
+      return;
+    }
+    
     setSelectedParticipants(prev => prev.filter(p => p._id !== userId));
     setEventData(prev => ({
       ...prev,
@@ -218,6 +236,32 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
             amount: parseFloat(item.amount)
           })
         });
+      }
+
+      // Calculate total and set owner's payment to their split amount
+      if (validExpenseItems.length > 0) {
+        const totalAmount = validExpenseItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+        const participantCount = selectedParticipants.length;
+        const splitAmount = participantCount > 0 ? totalAmount / participantCount : 0;
+
+        // Update owner's payment amount to their split
+        if (selectedOwner && splitAmount > 0) {
+          const ownerParticipant = createdEvent.participants.find(p => 
+            (typeof p.user === 'string' ? p.user : p.user._id) === selectedOwner._id
+          );
+          
+          if (ownerParticipant) {
+            await fetch(`/api/events/${createdEvent._id}/participants/${selectedOwner._id}/payment`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                amountPaid: splitAmount
+              })
+            });
+          }
+        }
       }
 
       // Reset form
@@ -301,7 +345,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
               freeSolo
               options={availableOwners}
               getOptionLabel={(option) => 
-                typeof option === 'string' ? option : `${option.name || 'Unknown'} (${option.email || 'No email'})`
+                typeof option === 'string' ? option : `${option.name || 'Unknown'}`
               }
               value={null}
               inputValue={ownerSearch}
@@ -335,9 +379,6 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                 <Box component="li" {...props}>
                   <Box>
                     <Typography variant="body1">{option.name || 'Unknown'}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {option.email || 'No email'}
-                    </Typography>
                   </Box>
                 </Box>
               )}
@@ -351,7 +392,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   <Chip
-                    label={`${selectedOwner.name || 'Unknown'} (${selectedOwner.email || 'No email'})`}
+                    label={`${selectedOwner.name || 'Unknown'}`}
                     onDelete={removeOwner}
                     deleteIcon={<CloseIcon />}
                     color="secondary"
@@ -392,7 +433,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
               freeSolo
               options={availableUsers}
               getOptionLabel={(option) => 
-                typeof option === 'string' ? option : `${option.name || 'Unknown'} (${option.email || 'No email'})`
+                typeof option === 'string' ? option : `${option.name || 'Unknown'}`
               }
               value={null}
               inputValue={userSearch}
@@ -426,9 +467,6 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                 <Box component="li" {...props}>
                   <Box>
                     <Typography variant="body1">{option.name || 'Unknown'}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {option.email || 'No email'}
-                    </Typography>
                   </Box>
                 </Box>
               )}
@@ -441,16 +479,19 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                   Selected participants:
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {selectedParticipants.map((participant) => (
-                    <Chip
-                      key={participant._id}
-                      label={`${participant.name || 'Unknown'} (${participant.email || 'No email'})`}
-                      onDelete={() => removeParticipant(participant._id)}
-                      deleteIcon={<CloseIcon />}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  ))}
+                  {selectedParticipants.map((participant) => {
+                    const isOwner = selectedOwner && selectedOwner._id === participant._id;
+                    return (
+                      <Chip
+                        key={participant._id}
+                        label={`${participant.name || 'Unknown'}${isOwner ? ' - Owner' : ''}`}
+                        onDelete={isOwner ? undefined : () => removeParticipant(participant._id)}
+                        deleteIcon={<CloseIcon />}
+                        color={isOwner ? "secondary" : "primary"}
+                        variant="outlined"
+                      />
+                    );
+                  })}
                 </Box>
               </Box>
             )}

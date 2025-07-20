@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ExpandableList from './ExpandableList';
 import CreateUserForm from './CreateUserForm';
 import UserDetailView from './UserDetailView';
@@ -74,8 +74,14 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
     setShowEventDetail(true);
   };
 
+  const userDetailRef = useRef(null);
+
   const handleEventUpdated = () => {
     fetchUsers(); // Refresh the users list when event is updated
+    // Also refresh user detail if it's open
+    if (userDetailRef.current && userDetailRef.current.refreshData) {
+      userDetailRef.current.refreshData();
+    }
   };
 
   return (
@@ -95,6 +101,7 @@ function UsersList({ isOpen, onToggle, onUserClick }) {
         onUserCreated={handleUserCreated}
       />
       <UserDetailView 
+        ref={userDetailRef}
         open={showUserDetail}
         onClose={() => setShowUserDetail(false)}
         userId={selectedUserId}

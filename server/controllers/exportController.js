@@ -8,8 +8,8 @@ const exportDataToCsv = async (req, res) => {
     const users = await User.find({}, '-passwordHash');
     const events = await Event.find()
       .populate([
-        { path: 'owner', select: 'name email' },
-        { path: 'participants.user', select: 'name email' }
+        { path: 'owner', select: 'name' },
+        { path: 'participants.user', select: 'name' }
       ]);
     const expenseItems = await ExpenseItem.find();
 
@@ -26,7 +26,6 @@ const exportDataToCsv = async (req, res) => {
       csvData.users.push({
         'User ID': user._id,
         'Name': user.name,
-        'Email': user.email,
         'Role': user.role,
         'Created At': user.createdAt ? new Date(user.createdAt).toISOString() : '',
         'Updated At': user.updatedAt ? new Date(user.updatedAt).toISOString() : ''
@@ -49,7 +48,6 @@ const exportDataToCsv = async (req, res) => {
         'Event Date': new Date(event.eventDate).toISOString().split('T')[0],
         'Owner ID': event.owner ? event.owner._id : '',
         'Owner Name': event.owner ? event.owner.name : '',
-        'Owner Email': event.owner ? event.owner.email : '',
         'Total Amount': eventTotal.toFixed(2),
         'Participant Count': participantCount,
         'Amount Per Person': perPersonAmount.toFixed(2),
@@ -71,7 +69,6 @@ const exportDataToCsv = async (req, res) => {
           'Event Date': new Date(event.eventDate).toISOString().split('T')[0],
           'User ID': participant.user._id,
           'User Name': participant.user.name,
-          'User Email': participant.user.email,
           'User Share': userShare.toFixed(2),
           'Amount Paid': amountPaid.toFixed(2),
           'Amount Owed': amountOwed.toFixed(2),

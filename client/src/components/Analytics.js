@@ -50,6 +50,11 @@ function Analytics() {
     }
   };
 
+  const handleDataPurged = () => {
+    // Refresh analytics after data purge
+    fetchAnalytics();
+  };
+
 
   if (loading) {
     return <AnalyticsLoading />;
@@ -66,7 +71,7 @@ function Analytics() {
       <Grid container spacing={3}>
         {/* Storage Overview */}
         <Grid item xs={12} md={6}>
-          <StorageOverviewCard analytics={analytics} />
+          <StorageOverviewCard analytics={analytics} onDataPurged={handleDataPurged} />
         </Grid>
 
         {/* Database Overview */}

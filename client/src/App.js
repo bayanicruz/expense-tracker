@@ -88,7 +88,7 @@ function App() {
             alignItems: 'center'
           }}>
             <Typography variant="caption" color="textSecondary">
-              © kuruzu 2024
+              © kuruzu 2025
             </Typography>
             <Button
               size="small"

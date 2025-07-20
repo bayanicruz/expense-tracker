@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,20 +14,18 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
+  Chip
 } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 
-function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) {
+const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEventClick }, ref) => {
   const [userData, setUserData] = useState({
     name: '',
     role: 'user',
     createdAt: '',
     updatedAt: ''
   });
+  
+  const [originalName, setOriginalName] = useState('');
   
   const [expenseData, setExpenseData] = useState({
     totalOwed: 0,
@@ -44,6 +42,15 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
     }
   }, [open, userId]);
 
+  useImperativeHandle(ref, () => ({
+    refreshData: () => {
+      if (userId) {
+        fetchUserDetails();
+        fetchUserExpenses();
+      }
+    }
+  }));
+
   const fetchUserDetails = async () => {
     try {
       setLoading(true);
@@ -51,6 +58,7 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
       if (response.ok) {
         const user = await response.json();
         setUserData(user);
+        setOriginalName(user.name || '');
       }
     } catch (error) {
       console.error('Error fetching user details:', error);
@@ -83,6 +91,11 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
   };
 
   const handleSave = async () => {
+    // Only save if the name has actually changed
+    if (userData.name.trim() === originalName.trim()) {
+      return;
+    }
+
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PATCH',
@@ -95,6 +108,7 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
       });
 
       if (response.ok) {
+        setOriginalName(userData.name); // Update the original name after successful save
         if (onUserUpdated) onUserUpdated();
       }
     } catch (error) {
@@ -130,6 +144,7 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
       createdAt: '',
       updatedAt: ''
     });
+    setOriginalName('');
     setExpenseData({
       totalOwed: 0,
       eventCount: 0,
@@ -176,16 +191,12 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
             fullWidth
             value={userData.name}
             onChange={(e) => handleChange('name', e.target.value)}
+            onBlur={handleSave}
             required
           />
           
 
 
-          {userData.updatedAt && (
-            <Typography variant="body2" color="textSecondary">
-              Last updated: {formatDate(userData.updatedAt)}
-            </Typography>
-          )}
 
           <Divider sx={{ my: 2 }} />
 
@@ -216,58 +227,72 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
                 {expenseData.totalOwed > 0 ? 'Total Owed' : 'All Paid Up!'}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Across {expenseData.eventCount} event{expenseData.eventCount !== 1 ? 's' : ''}
+                Across {expenseData.eventBreakdown.filter(event => !event.eventOwner || event.eventOwner._id !== userId).length} participated event{expenseData.eventBreakdown.filter(event => !event.eventOwner || event.eventOwner._id !== userId).length !== 1 ? 's' : ''}
               </Typography>
             </Box>
 
-            {/* Event Breakdown */}
+            {/* Events List */}
             {expenseData.eventBreakdown.length > 0 && (
               <Box>
                 <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                  Event Breakdown
+                  Events ({expenseData.eventBreakdown.length})
                 </Typography>
                 
-                {/* Events Owned */}
-                <Accordion>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="h6">
-                      Events Owned ({expenseData.eventBreakdown.filter(event => event.eventOwner && event.eventOwner._id === userId).length})
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <List>
-                      {expenseData.eventBreakdown
-                        .filter(event => event.eventOwner && event.eventOwner._id === userId)
-                        .map((event, index, filteredEvents) => (
-                          <Box key={event.eventId}>
-                            <ListItem 
-                              sx={{ 
-                                px: 0, 
-                                flexDirection: 'column', 
-                                alignItems: 'stretch',
-                                cursor: onEventClick ? 'pointer' : 'default',
-                                '&:hover': onEventClick ? {
-                                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                                } : {}
-                              }}
-                              onClick={() => onEventClick && onEventClick(event.eventId)}
-                            >
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
-                                <Box sx={{ flexGrow: 1 }}>
-                                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                    {event.eventTitle}
+                <List>
+                  {expenseData.eventBreakdown.map((event, index) => {
+                    const isOwner = event.eventOwner && event.eventOwner._id === userId;
+                    return (
+                      <Box key={event.eventId}>
+                        <ListItem 
+                          sx={{ 
+                            px: 0, 
+                            flexDirection: 'column', 
+                            alignItems: 'stretch',
+                            cursor: onEventClick ? 'pointer' : 'default',
+                            '&:hover': onEventClick ? {
+                              backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                            } : {}
+                          }}
+                          onClick={() => onEventClick && onEventClick(event.eventId)}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
+                            <Box sx={{ flexGrow: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                                  {event.eventTitle}
+                                </Typography>
+                                {isOwner && (
+                                  <Typography variant="caption" sx={{ 
+                                    color: '#1976d2', 
+                                    fontWeight: 'medium',
+                                    backgroundColor: '#e3f2fd',
+                                    padding: '2px 6px',
+                                    borderRadius: '3px',
+                                    fontSize: '0.7rem'
+                                  }}>
+                                    Owner
                                   </Typography>
-                                  <Typography variant="body2" color="textSecondary">
-                                    {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''}
+                                )}
+                                {(event.remainingBalance !== undefined && event.remainingBalance === 0 && event.eventTotal > 0) && (
+                                  <Typography variant="caption" sx={{ 
+                                    color: '#4caf50', 
+                                    fontWeight: 'medium',
+                                    backgroundColor: '#e8f5e8',
+                                    padding: '2px 4px',
+                                    borderRadius: '3px',
+                                    fontSize: '0.7rem'
+                                  }}>
+                                    Settled
                                   </Typography>
-                                </Box>
-                                <Box sx={{ textAlign: 'right' }}>
-                                  <Chip 
-                                    label="Owner"
-                                    color="primary"
-                                    size="small"
-                                    sx={{ mb: 1 }}
-                                  />
+                                )}
+                              </Box>
+                              <Typography variant="body2" color="textSecondary">
+                                {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ textAlign: 'right' }}>
+                              {isOwner ? (
+                                <>
                                   <Typography variant="body2" color="textSecondary">
                                     Split: ${(event.splitPerPerson || 0).toFixed(2)}
                                   </Typography>
@@ -280,79 +305,9 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
                                   <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 'medium' }}>
                                     Total: ${event.eventTotal.toFixed(2)}
                                   </Typography>
-                                </Box>
-                              </Box>
-                              
-                              {/* Expense Items */}
-                              {event.expenseItems.length > 0 && (
-                                <Box sx={{ ml: 2, mt: 1 }}>
-                                  <Typography variant="caption" color="textSecondary">
-                                    Items ({event.expenseItems.length}):
-                                  </Typography>
-                                  {event.expenseItems.map((item, itemIndex) => (
-                                    <Typography key={itemIndex} variant="caption" display="block" color="textSecondary">
-                                      • {item.itemName}: ${item.amount.toFixed(2)}
-                                    </Typography>
-                                  ))}
-                                </Box>
-                              )}
-                            </ListItem>
-                            {index < filteredEvents.length - 1 && <Divider />}
-                          </Box>
-                        ))}
-                      {expenseData.eventBreakdown.filter(event => event.eventOwner && event.eventOwner._id === userId).length === 0 && (
-                        <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
-                          No events owned by this user.
-                        </Typography>
-                      )}
-                    </List>
-                  </AccordionDetails>
-                </Accordion>
-
-                {/* Events Participated */}
-                <Accordion>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="h6">
-                      Events Participated ({expenseData.eventBreakdown.filter(event => !event.eventOwner || event.eventOwner._id !== userId).length})
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <List>
-                      {expenseData.eventBreakdown
-                        .filter(event => !event.eventOwner || event.eventOwner._id !== userId)
-                        .map((event, index, filteredEvents) => (
-                          <Box key={event.eventId}>
-                            <ListItem 
-                              sx={{ 
-                                px: 0, 
-                                flexDirection: 'column', 
-                                alignItems: 'stretch',
-                                cursor: onEventClick ? 'pointer' : 'default',
-                                '&:hover': onEventClick ? {
-                                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                                } : {}
-                              }}
-                              onClick={() => onEventClick && onEventClick(event.eventId)}
-                            >
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
-                                <Box sx={{ flexGrow: 1 }}>
-                                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                    {event.eventTitle}
-                                  </Typography>
-                                  <Typography variant="body2" color="textSecondary">
-                                    {formatDate(event.eventDate)} • {event.participantCount} participant{event.participantCount !== 1 ? 's' : ''}
-                                  </Typography>
-                                  {event.eventOwner && (
-                                    <Typography variant="body2" sx={{ 
-                                      color: '#1976d2', 
-                                      fontWeight: 'medium',
-                                      fontSize: '0.75rem'
-                                    }}>
-                                      Owner: {event.eventOwner.name}
-                                    </Typography>
-                                  )}
-                                </Box>
-                                <Box sx={{ textAlign: 'right' }}>
+                                </>
+                              ) : (
+                                <>
                                   <Chip 
                                     label={event.amountPaid === 0 ? 'Unpaid' : event.amountPaid > event.userShare ? 'Overpaid' : event.amountOwed > 0 ? 'Partially Paid' : 'Paid'}
                                     color={event.amountPaid === 0 ? 'error' : event.amountPaid > event.userShare ? 'info' : event.amountOwed > 0 ? 'warning' : 'success'}
@@ -360,7 +315,7 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
                                     sx={{ mb: 1 }}
                                   />
                                   <Typography variant="body2" color="textSecondary">
-                                    Your Share: ${event.userShare.toFixed(2)}
+                                    Share: ${event.userShare.toFixed(2)}
                                   </Typography>
                                   <Typography variant="body2" color="textSecondary">
                                     Paid: ${event.amountPaid.toFixed(2)}
@@ -370,37 +325,16 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
                                       Still Owe: ${event.amountOwed.toFixed(2)}
                                     </Typography>
                                   )}
-                                </Box>
-                              </Box>
-                              
-                              {/* Expense Items */}
-                              {event.expenseItems.length > 0 && (
-                                <Box sx={{ ml: 2, mt: 1 }}>
-                                  <Typography variant="caption" color="textSecondary">
-                                    Items ({event.expenseItems.length}):
-                                  </Typography>
-                                  {event.expenseItems.map((item, itemIndex) => (
-                                    <Typography key={itemIndex} variant="caption" display="block" color="textSecondary">
-                                      • {item.itemName}: ${item.amount.toFixed(2)}
-                                    </Typography>
-                                  ))}
-                                  <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'medium' }}>
-                                    Event Total: ${event.eventTotal.toFixed(2)}
-                                  </Typography>
-                                </Box>
+                                </>
                               )}
-                            </ListItem>
-                            {index < filteredEvents.length - 1 && <Divider />}
+                            </Box>
                           </Box>
-                        ))}
-                      {expenseData.eventBreakdown.filter(event => !event.eventOwner || event.eventOwner._id !== userId).length === 0 && (
-                        <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
-                          No events participated by this user.
-                        </Typography>
-                      )}
-                    </List>
-                  </AccordionDetails>
-                </Accordion>
+                        </ListItem>
+                        {index < expenseData.eventBreakdown.length - 1 && <Divider />}
+                      </Box>
+                    );
+                  })}
+                </List>
               </Box>
             )}
 
@@ -414,16 +348,6 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
       </DialogContent>
       
       <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
-        <Button 
-          onClick={handleSave} 
-          variant="contained"
-          disabled={!userData.name}
-          fullWidth
-          size="large"
-          sx={{ py: 2 }}
-        >
-          Save Changes
-        </Button>
         <Button 
           onClick={deleteUser}
           variant="outlined"
@@ -446,6 +370,6 @@ function UserDetailView({ open, onClose, userId, onUserUpdated, onEventClick }) 
       </DialogActions>
     </Dialog>
   );
-}
+});
 
 export default UserDetailView;

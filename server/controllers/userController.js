@@ -12,7 +12,7 @@ const getAllUsers = async (req, res) => {
         // Find all events where user is a participant
         const events = await Event.find({
           'participants.user': user._id
-        }).populate('participants.user', 'name email');
+        }).populate('participants.user', 'name');
 
         let totalOwed = 0;
 
@@ -63,26 +63,19 @@ const getUserById = async (req, res) => {
 // POST /api/users
 const createUser = async (req, res) => {
   try {
-    const { name, email, role } = req.body;
+    const { name, role } = req.body;
 
     // Basic validation
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Name and email are required' });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: 'User with this email already exists' });
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
     }
 
     // For now, create with a placeholder password hash
     // In future: hash actual password
     const user = new User({
       name,
-      email,
       passwordHash: 'placeholder-will-add-auth-later',
-      role: 'user'
+      role: role || 'user'
     });
 
     await user.save();
@@ -184,6 +177,12 @@ const getUserExpenses = async (req, res) => {
       
       totalOwed += amountOwed;
 
+      // Calculate additional fields for owner view
+      const isOwner = event.owner && event.owner._id.toString() === id;
+      const splitPerPerson = participantCount > 0 ? eventTotal / participantCount : 0;
+      const totalAmountPaid = event.participants.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
+      const remainingBalance = Math.max(0, eventTotal - totalAmountPaid);
+
       eventBreakdown.push({
         eventId: event._id,
         eventTitle: event.title,
@@ -197,6 +196,10 @@ const getUserExpenses = async (req, res) => {
         userShare: userShare,
         amountPaid: amountPaid,
         amountOwed: amountOwed,
+        // Additional fields for owner display
+        splitPerPerson: splitPerPerson,
+        totalAmountPaid: totalAmountPaid,
+        remainingBalance: remainingBalance,
         expenseItems: expenseItems.map(item => ({
           itemName: item.itemName,
           amount: item.amount
@@ -221,6 +224,7 @@ const getUserExpenses = async (req, res) => {
       const totalAmountPaid = event.participants.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
       const remainingBalance = Math.max(0, eventTotal - totalAmountPaid);
 
+      // For owner-only events (where owner is not a participant), they don't owe anything
       eventBreakdown.push({
         eventId: event._id,
         eventTitle: event.title,
@@ -231,9 +235,9 @@ const getUserExpenses = async (req, res) => {
         },
         eventTotal: eventTotal,
         participantCount: participantCount,
-        userShare: 0, // Owner doesn't owe money
-        amountPaid: 0, // Owner doesn't pay
-        amountOwed: 0, // Owner doesn't owe
+        userShare: 0, // Owner doesn't owe money in owner-only events
+        amountPaid: 0, // Owner doesn't pay in owner-only events
+        amountOwed: 0, // Owner doesn't owe in owner-only events
         splitPerPerson: splitPerPerson,
         totalAmountPaid: totalAmountPaid,
         remainingBalance: remainingBalance,
@@ -244,14 +248,12 @@ const getUserExpenses = async (req, res) => {
       });
     }
 
-    const totalEventCount = participatedEvents.length + ownedEvents.filter(event => 
-      !event.participants.some(p => p.user._id.toString() === id)
-    ).length;
+    const participatedEventCount = participatedEvents.length;
 
     res.json({
       user: user,
       totalOwed: totalOwed,
-      eventCount: totalEventCount,
+      eventCount: participatedEventCount,
       eventBreakdown: eventBreakdown
     });
   } catch (error) {

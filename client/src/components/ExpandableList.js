@@ -16,7 +16,8 @@ function ExpandableList({
   createText, 
   items = [], 
   onItemClick,
-  getItemText 
+  getItemText,
+  renderItem
 }) {
   return (
     <Box>
@@ -46,17 +47,19 @@ function ExpandableList({
                 sx={{ pl: 4 }}
                 onClick={() => onItemClick && onItemClick(item)}
               >
-                <ListItemText 
-                  primary={getItemText ? (
-                    typeof getItemText(item) === 'object' ? 
-                      getItemText(item).primary : 
-                      getItemText(item)
-                  ) : item._id}
-                  secondary={getItemText && typeof getItemText(item) === 'object' ? 
-                    getItemText(item).secondary : 
-                    undefined
-                  }
-                />
+                {renderItem ? renderItem(item) : (
+                  <ListItemText 
+                    primary={getItemText ? (
+                      typeof getItemText(item) === 'object' ? 
+                        getItemText(item).primary : 
+                        getItemText(item)
+                    ) : item._id}
+                    secondary={getItemText && typeof getItemText(item) === 'object' ? 
+                      getItemText(item).secondary : 
+                      undefined
+                    }
+                  />
+                )}
               </ListItemButton>
             </ListItem>
           ))}

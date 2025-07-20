@@ -6,8 +6,8 @@ const getAllEvents = async (req, res) => {
   try {
     const events = await Event.find()
       .populate([
-        { path: 'owner', select: 'name email' },
-        { path: 'participants.user', select: 'name email' }
+        { path: 'owner', select: 'name' },
+        { path: 'participants.user', select: 'name' }
       ])
       .sort({ eventDate: -1 }); // Most recent first
 
@@ -77,8 +77,8 @@ const createEvent = async (req, res) => {
 
     await event.save();
     await event.populate([
-      { path: 'owner', select: 'name email' },
-      { path: 'participants.user', select: 'name email' }
+      { path: 'owner', select: 'name' },
+      { path: 'participants.user', select: 'name' }
     ]);
 
     res.status(201).json(event);
@@ -94,8 +94,8 @@ const getEventById = async (req, res) => {
     
     const event = await Event.findById(id)
       .populate([
-        { path: 'owner', select: 'name email' },
-        { path: 'participants.user', select: 'name email' }
+        { path: 'owner', select: 'name' },
+        { path: 'participants.user', select: 'name' }
       ]);
     
     if (!event) {
@@ -119,8 +119,8 @@ const updateEvent = async (req, res) => {
       updates, 
       { new: true }
     ).populate([
-      { path: 'owner', select: 'name email' },
-      { path: 'participants.user', select: 'name email' }
+      { path: 'owner', select: 'name' },
+      { path: 'participants.user', select: 'name' }
     ]);
 
     if (!event) {
@@ -232,8 +232,8 @@ const updateParticipantPaymentAmount = async (req, res) => {
     event.participants[participantIndex].amountPaid = amountPaid;
     await event.save();
     await event.populate([
-      { path: 'owner', select: 'name email' },
-      { path: 'participants.user', select: 'name email' }
+      { path: 'owner', select: 'name' },
+      { path: 'participants.user', select: 'name' }
     ]);
 
     res.json(event);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Box, Typography, ListItemText } from '@mui/material';
 import ExpandableList from './ExpandableList';
 import CreateEventForm from './CreateEventForm';
 import EventDetailView from './EventDetailView';
@@ -38,15 +39,36 @@ function EventsList({ isOpen, onToggle, onEventClick }) {
     }
   };
 
-  const getEventText = (event) => {
+  const renderEventItem = (event) => {
     const title = event.name || event.title || `Event ${event._id}`;
     const owner = event.owner ? event.owner.name : 'Unknown';
     const remainingBalance = event.remainingBalance || 0;
+    const isSettled = remainingBalance === 0 && event.totalAmount > 0;
     
-    return {
-      primary: title,
-      secondary: `Owner: ${owner} • Remaining: $${remainingBalance.toFixed(2)}`
-    };
+    return (
+      <ListItemText 
+        primary={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body1">
+              {title}
+            </Typography>
+            {isSettled && (
+              <Typography variant="caption" sx={{ 
+                color: '#4caf50', 
+                fontWeight: 'medium',
+                backgroundColor: '#e8f5e8',
+                padding: '2px 4px',
+                borderRadius: '3px',
+                fontSize: '0.7rem'
+              }}>
+                Settled
+              </Typography>
+            )}
+          </Box>
+        }
+        secondary={`Owner: ${owner} • Remaining: $${remainingBalance.toFixed(2)}`}
+      />
+    );
   };
 
   const handleItemClick = (item) => {
@@ -76,7 +98,7 @@ function EventsList({ isOpen, onToggle, onEventClick }) {
         createText="+ Create Event"
         items={events}
         onItemClick={handleItemClick}
-        getItemText={getEventText}
+        renderItem={renderEventItem}
       />
       <CreateEventForm 
         open={showCreateForm}

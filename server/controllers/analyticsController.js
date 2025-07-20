@@ -124,6 +124,39 @@ const getAnalytics = async (req, res) => {
   }
 };
 
+// DELETE /api/analytics/purge-all
+const purgeAllData = async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    // Verify admin password
+    if (password !== 'admin') {
+      return res.status(401).json({ error: 'Invalid admin password' });
+    }
+    
+    // Delete all data from collections
+    const userResult = await User.deleteMany({});
+    const eventResult = await Event.deleteMany({});
+    const expenseItemResult = await ExpenseItem.deleteMany({});
+    
+    res.json({
+      message: 'All data purged successfully',
+      deletedCounts: {
+        users: userResult.deletedCount,
+        events: eventResult.deletedCount,
+        expenseItems: expenseItemResult.deletedCount
+      }
+    });
+  } catch (error) {
+    console.error('Purge error:', error);
+    res.status(500).json({ 
+      error: 'Failed to purge data',
+      details: error.message 
+    });
+  }
+};
+
 module.exports = {
-  getAnalytics
+  getAnalytics,
+  purgeAllData
 };
