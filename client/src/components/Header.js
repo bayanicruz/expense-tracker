@@ -12,6 +12,7 @@ import featureToggles from '../config/featureToggles.json';
 
 function Header() {
   const enableGossip = featureToggles.enableGossip !== false;
+  const enableReminders = featureToggles.enableReminders === true;
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('😏');
   const [answer, setAnswer] = useState('');
@@ -24,6 +25,7 @@ function Header() {
   const [eventsLoaded, setEventsLoaded] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [isTyping, setIsTyping] = useState(true); // Start with typing animation
+  const [reminder, setReminder] = useState('');
 
   const API_URL = process.env.REACT_APP_API_URL || '';
 
@@ -110,6 +112,97 @@ function Header() {
     setIsTyping(false);
   };
 
+  const generateNewReminder = async () => {
+    if (!eventsLoaded || !events.length) {
+      setReminder('');
+      return;
+    }
+    setIsTyping(true);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Filter for events with remainingBalance > 0 (pending)
+    const pendingEvents = events.filter(e => (e.remainingBalance || 0) > 0);
+    const event = (pendingEvents.length > 0 ? pendingEvents : events)[Math.floor(Math.random() * (pendingEvents.length > 0 ? pendingEvents.length : events.length))];
+    const eventName = event.title || event.name || `Event ${event._id}`;
+    const amount = event.remainingBalance || event.totalAmount || 0;
+    // Find owner name
+    let ownerName = 'Unknown';
+    if (event.owner) {
+      if (typeof event.owner === 'object') {
+        ownerName = event.owner.name || event.owner.username || 'Unknown';
+      } else {
+        const ownerObj = users.find(u => u._id === event.owner);
+        if (ownerObj) ownerName = ownerObj.name || ownerObj.username || 'Unknown';
+      }
+    }
+    // Find a random participant who is not the owner
+    let participantName = null;
+    let participantObj = null;
+    if (event.participants && event.participants.length > 0) {
+      // Try to get participant user objects or IDs
+      const participantIds = event.participants.map(p => (typeof p === 'object' ? (p.user ? p.user._id : p._id) : p));
+      // Exclude owner
+      const filtered = participantIds.filter(pid => pid !== (typeof event.owner === 'object' ? event.owner._id : event.owner));
+      if (filtered.length > 0) {
+        const randomPid = filtered[Math.floor(Math.random() * filtered.length)];
+        participantObj = users.find(u => u._id === randomPid);
+        if (participantObj) participantName = participantObj.name || participantObj.username || null;
+      }
+    }
+    if (!participantName) participantName = 'Someone';
+
+    // Find a random participant for payment status reminders
+    let paymentParticipant = null;
+    let paymentParticipantName = null;
+    let paymentAmountPaid = 0;
+    let paymentShare = 0;
+    let paymentStatus = null;
+    if (event.participants && event.participants.length > 0) {
+      // Try to find a participant with payment info (object with amountPaid and user)
+      const candidates = event.participants.filter(p => typeof p === 'object' && p.user && typeof p.amountPaid !== 'undefined');
+      if (candidates.length > 0) {
+        const randomP = candidates[Math.floor(Math.random() * candidates.length)];
+        paymentParticipant = users.find(u => u._id === (randomP.user._id || randomP.user));
+        paymentParticipantName = paymentParticipant ? (paymentParticipant.name || paymentParticipant.username || 'Someone') : 'Someone';
+        paymentAmountPaid = randomP.amountPaid || 0;
+        // Estimate share
+        const total = event.totalAmount || 0;
+        const numParts = event.participants.length;
+        paymentShare = numParts > 0 ? total / numParts : 0;
+        // Determine payment status
+        if (paymentAmountPaid === 0) paymentStatus = 'unpaid';
+        else if (paymentAmountPaid > paymentShare) paymentStatus = 'overpaid';
+        else if (paymentAmountPaid >= paymentShare) paymentStatus = 'paid';
+        else paymentStatus = 'partial';
+      }
+    }
+
+    // Pick a reminder type: 0 = owes, 1 = total cost, 2 = remaining, 3 = settled, 4 = paid, 5 = overpaid, 6 = partial
+    const reminderType = Math.floor(Math.random() * 7);
+    if (reminderType === 0) {
+      setReminder(`💸 ${participantName} still owes **${ownerName}** **$${amount.toLocaleString()}** for **${eventName}**.`);
+    } else if (reminderType === 1) {
+      const total = event.totalAmount || 0;
+      setReminder(`💡 **${eventName}** cost a total of **$${total.toLocaleString()}**.`);
+    } else if (reminderType === 2) {
+      setReminder(`🧾 **$${amount.toLocaleString()}** left to settle for **${eventName}**.`);
+    } else if (reminderType === 3) {
+      if ((event.remainingBalance || 0) === 0 && (event.totalAmount || 0) > 0) {
+        setReminder(`🎉 **${eventName}** is fully settled! Great job, everyone!`);
+      } else {
+        setReminder(`⏳ **${eventName}** isn't settled yet. Keep going!`);
+      }
+    } else if (reminderType === 4 && paymentStatus === 'paid') {
+      setReminder(`✅ **${paymentParticipantName}** paid their share for **${eventName}**.`);
+    } else if (reminderType === 5 && paymentStatus === 'overpaid') {
+      setReminder(`💰 **${paymentParticipantName}** overpaid for **${eventName}**! Generous!`);
+    } else if (reminderType === 6 && paymentStatus === 'partial') {
+      setReminder(`🕗 **${paymentParticipantName}** has partially paid for **${eventName}**.`);
+    } else {
+      setReminder(`💸 ${participantName} still owes **${ownerName}** **$${amount.toLocaleString()}** for **${eventName}**.`);
+    }
+    setIsTyping(false);
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchEvents();
@@ -118,19 +211,33 @@ function Header() {
   useEffect(() => {
     // Generate conversation when both users and events are loaded (or loading is complete)
     if (usersLoaded && eventsLoaded) {
-      generateNewConversation();
+      if (enableGossip) {
+        generateNewConversation();
+      } else if (enableReminders) {
+        generateNewReminder();
+      }
     }
-  }, [usersLoaded, eventsLoaded]);
+  }, [usersLoaded, eventsLoaded, enableGossip, enableReminders]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      generateNewConversation();
-    }, 10000);
+    if (enableGossip) {
+      const interval = setInterval(() => {
+        generateNewConversation();
+      }, 10000);
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isExpanded, usersLoaded, eventsLoaded]);
+      return () => {
+        clearInterval(interval);
+      };
+    } else if (enableReminders) {
+      const interval = setInterval(() => {
+        generateNewReminder();
+      }, 10000);
+
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [isExpanded, usersLoaded, eventsLoaded, enableGossip, enableReminders]);
 
   const minSwipeDistance = 50;
 
@@ -176,15 +283,26 @@ function Header() {
     }
   };
 
+  // Helper to render reminder with bold parts
+  const renderReminder = (reminder) => {
+    // Use a simple token system for bolding: wrap bold parts in **double asterisks**
+    const parts = reminder.split(/\*\*(.*?)\*\*/g);
+    return parts.map((part, i) =>
+      i % 2 === 1
+        ? <Box key={i} component="span" sx={{ fontWeight: 'bold', display: 'inline' }}>{part}</Box>
+        : part
+    );
+  };
+
   return (
-    <AppBar position={enableGossip && isExpanded ? "sticky" : "static"} sx={{ 
-      backgroundColor: !enableGossip || !isExpanded ? '#1976d2' : 'white', 
-      color: !enableGossip || !isExpanded ? 'white' : 'black' 
+    <AppBar position={(enableGossip || enableReminders) && isExpanded ? "sticky" : "static"} sx={{ 
+      backgroundColor: (!enableGossip && !enableReminders) || !isExpanded ? '#1976d2' : 'white', 
+      color: (!enableGossip && !enableReminders) || !isExpanded ? 'white' : 'black' 
     }}>
-      <Toolbar sx={{ justifyContent: 'center', py: !enableGossip || !isExpanded ? 1 : 2, minHeight: !enableGossip || !isExpanded ? '48px' : 'auto' }}>
+      <Toolbar sx={{ justifyContent: 'center', py: (!enableGossip && !enableReminders) || !isExpanded ? 1 : 2, minHeight: (!enableGossip && !enableReminders) || !isExpanded ? '48px' : 'auto' }}>
         <Box sx={{ maxWidth: '600px', width: '100%', position: 'relative' }}>
           {/* Collapsed State - Enhanced Title */}
-          {(!enableGossip || !isExpanded) && (
+          {((!enableGossip && !enableReminders) || !isExpanded) && (
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'center', 
@@ -385,11 +503,89 @@ function Header() {
               </Box>
             </Collapse>
           )}
+          {enableReminders && !enableGossip && (
+            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                cursor: 'pointer',
+                userSelect: 'none',
+                '&:active': {
+                  transform: 'scale(0.98)',
+                  transition: 'transform 0.1s ease'
+                }
+              }}
+              onClick={generateNewReminder}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ fontSize: '1.2rem', color: 'black', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                  >
+                    🤖
+                  </Typography>
+                  <Box sx={{
+                    backgroundColor: '#fffde7',
+                    color: 'black',
+                    borderRadius: '8px',
+                    padding: '8px 14px',
+                    maxWidth: '340px',
+                    boxShadow: '0 1.5px 6px 0 rgba(0,0,0,0.07)',
+                    minHeight: '22px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontFamily: '"Shadows Into Light", "Comic Sans MS", "Comic Sans", cursive, sans-serif',
+                    fontSize: '1.01rem',
+                    letterSpacing: '0.01em',
+                    lineHeight: 1.35,
+                    transition: 'background 0.2s',
+                    border: '1px solid #ffe082',
+                  }}>
+                    {isTyping ? (
+                      <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center', py: 0.5 }}>
+                        {[0, 1, 2].map((dot) => (
+                          <Box
+                            key={dot}
+                            sx={{
+                              width: '6px',
+                              height: '6px',
+                              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                              borderRadius: '50%',
+                              animation: 'typing 1.4s infinite',
+                              animationDelay: `${dot * 0.2}s`,
+                              '@keyframes typing': {
+                                '0%, 60%, 100%': {
+                                  transform: 'translateY(0)',
+                                  opacity: 0.4
+                                },
+                                '30%': {
+                                  transform: 'translateY(-4px)',
+                                  opacity: 1
+                                }
+                              }
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography 
+                        variant="body2" 
+                        sx={{ fontSize: '1.13rem', fontWeight: 500, lineHeight: 1.4 }}
+                      >
+                        {renderReminder(reminder)}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              </Box>
+            </Collapse>
+          )}
         </Box>
       </Toolbar>
       
       {/* Hide/Show Conversation Button - Below header border */}
-      {enableGossip && (
+      {(enableGossip || enableReminders) && (
         <Box sx={{ 
           position: 'absolute',
           top: 'calc(100% + 4px)',

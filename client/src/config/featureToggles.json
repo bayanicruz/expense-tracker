@@ -1,3 +1,4 @@
 {
-  "enableGossip": false
+  "enableGossip": false,
+  "enableReminders": true
 } 
