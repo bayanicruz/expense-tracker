@@ -132,12 +132,9 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
 
   const removeOwner = () => {
     if (selectedOwner) {
-      // Remove owner from participants as well
-      setSelectedParticipants(prev => prev.filter(p => p._id !== selectedOwner._id));
       setEventData(prev => ({
         ...prev,
-        owner: '',
-        participants: prev.participants.filter(id => id !== selectedOwner._id)
+        owner: ''
       }));
     }
     setSelectedOwner(null);
@@ -156,11 +153,6 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   };
 
   const removeParticipant = (userId) => {
-    // Prevent removing the owner from participants
-    if (selectedOwner && selectedOwner._id === userId) {
-      return;
-    }
-    
     setSelectedParticipants(prev => prev.filter(p => p._id !== userId));
     setEventData(prev => ({
       ...prev,
@@ -491,7 +483,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                       <Chip
                         key={participant._id}
                         label={`${participant.name || 'Unknown'}${isOwner ? ' - Owner' : ''}`}
-                        onDelete={isOwner ? undefined : () => removeParticipant(participant._id)}
+                        onDelete={() => removeParticipant(participant._id)}
                         deleteIcon={<CloseIcon />}
                         color={isOwner ? "secondary" : "primary"}
                         variant="outlined"
