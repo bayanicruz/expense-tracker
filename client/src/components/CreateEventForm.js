@@ -311,8 +311,28 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <LoadingOverlay loading={loading}>
-        <DialogTitle>Create New Event</DialogTitle>
-      <DialogContent>
+        {/* Sticky Header */}
+        <DialogTitle sx={{ 
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 1, 
+          backgroundColor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }}>
+          Create New Event
+        </DialogTitle>
+        
+        {/* Scrollable Content */}
+        <DialogContent sx={{ 
+          flex: 1, 
+          overflow: 'auto',
+          '&::-webkit-scrollbar': { width: '6px' },
+          '&::-webkit-scrollbar-thumb': { 
+            backgroundColor: 'rgba(0,0,0,0.2)', 
+            borderRadius: '3px' 
+          }
+        }}>
         <Stack spacing={3} sx={{ mt: 1 }}>
           {/* Event Details */}
           <TextField
@@ -578,28 +598,39 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
             )}
           </Box>
         </Stack>
-      </DialogContent>
-      
-      <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained"
-          disabled={!eventData.title || !eventData.eventDate || !eventData.owner || loading}
-          fullWidth
-          size="large"
-          sx={{ py: 2 }}
-        >
-          Create Event
-        </Button>
-        <Button 
-          onClick={handleClose}
-          fullWidth
-          size="large"
-          sx={{ py: 2 }}
-        >
-          Cancel
-        </Button>
-      </DialogActions>
+        </DialogContent>
+        
+        {/* Sticky Footer */}
+        <DialogActions sx={{ 
+          position: 'sticky', 
+          bottom: 0, 
+          zIndex: 1, 
+          backgroundColor: 'background.paper',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          flexDirection: 'column', 
+          gap: 1, 
+          p: 2 
+        }}>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained"
+            disabled={!eventData.title || !eventData.eventDate || !eventData.owner || loading}
+            fullWidth
+            size="large"
+            sx={{ py: 2 }}
+          >
+            Create Event
+          </Button>
+          <Button 
+            onClick={handleClose}
+            fullWidth
+            size="large"
+            sx={{ py: 2 }}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
       </LoadingOverlay>
     </Dialog>
   );

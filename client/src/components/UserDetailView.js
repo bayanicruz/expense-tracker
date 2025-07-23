@@ -17,9 +17,10 @@ import {
   Chip,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  IconButton
 } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import { ExpandMore as ExpandMoreIcon, Edit as EditIcon, Close as CloseIcon, Check as CheckIcon } from '@mui/icons-material';
 import LoadingOverlay from './LoadingOverlay';
 
 const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEventClick }, ref) => {
@@ -31,6 +32,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
   });
   
   const [originalName, setOriginalName] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   
   const [expenseData, setExpenseData] = useState({
     totalOwed: 0,
@@ -109,6 +111,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
   const handleSave = async () => {
     // Only save if the name has actually changed
     if (userData.name.trim() === originalName.trim()) {
+      setIsEditing(false);
       return;
     }
 
@@ -125,11 +128,21 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
 
       if (response.ok) {
         setOriginalName(userData.name); // Update the original name after successful save
+        setIsEditing(false);
         if (onUserUpdated) onUserUpdated();
       }
     } catch (error) {
       console.error('Error updating user:', error);
     }
+  };
+
+  const handleCancelEdit = () => {
+    setUserData(prev => ({ ...prev, name: originalName }));
+    setIsEditing(false);
+  };
+
+  const handleStartEdit = () => {
+    setIsEditing(true);
   };
 
   const deleteUser = async () => {
@@ -171,6 +184,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
       updatedAt: ''
     });
     setOriginalName('');
+    setIsEditing(false);
     setExpenseData({
       totalOwed: 0,
       eventCount: 0,
@@ -187,36 +201,78 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <LoadingOverlay loading={loading}>
-      <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h5" component="div" sx={{ mb: 1 }}>
-              {userData.name || 'User Details'}
-            </Typography>
-            {userData.createdAt && (
-              <Typography variant="body2" color="textSecondary">
-                Created: {formatDate(userData.createdAt)}
-              </Typography>
-            )}
+        {/* Sticky Header */}
+        <DialogTitle sx={{ 
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 1, 
+          backgroundColor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ flexGrow: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                {isEditing ? (
+                  <>
+                    <TextField
+                      value={userData.name}
+                      onChange={(e) => handleChange('name', e.target.value)}
+                      variant="standard"
+                      size="small"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSave();
+                        } else if (e.key === 'Escape') {
+                          handleCancelEdit();
+                        }
+                      }}
+                      sx={{ 
+                        '& .MuiInput-root': {
+                          fontSize: '1.5rem',
+                          fontWeight: 400
+                        }
+                      }}
+                    />
+                    <IconButton size="small" onClick={handleSave} color="primary">
+                      <CheckIcon />
+                    </IconButton>
+                    <IconButton size="small" onClick={handleCancelEdit}>
+                      <CloseIcon />
+                    </IconButton>
+                  </>
+                ) : (
+                  <>
+                    <Typography variant="h5" component="div">
+                      {userData.name || 'User Details'}
+                    </Typography>
+                    <IconButton size="small" onClick={handleStartEdit}>
+                      <EditIcon />
+                    </IconButton>
+                  </>
+                )}
+              </Box>
+              {userData.createdAt && (
+                <Typography variant="body2" color="textSecondary">
+                  Created: {formatDate(userData.createdAt)}
+                </Typography>
+              )}
+            </Box>
           </Box>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
+        </DialogTitle>
+        
+        {/* Scrollable Content */}
+        <DialogContent sx={{ 
+          flex: 1, 
+          overflow: 'auto',
+          '&::-webkit-scrollbar': { width: '6px' },
+          '&::-webkit-scrollbar-thumb': { 
+            backgroundColor: 'rgba(0,0,0,0.2)', 
+            borderRadius: '3px' 
+          }
+        }}>
         <Stack spacing={3} sx={{ mt: 1 }}>
-          <TextField
-            label="Full Name"
-            fullWidth
-            value={userData.name}
-            onChange={(e) => handleChange('name', e.target.value)}
-            onBlur={handleSave}
-            required
-          />
-          
-
-
-
-          <Divider sx={{ my: 2 }} />
-
           {/* Expense Summary */}
           <Box>
             <Typography variant="h6" sx={{ mb: 2 }}>
@@ -443,35 +499,45 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
             )}
           </Box>
         </Stack>
-      </DialogContent>
-      
-      <DialogActions sx={{ justifyContent: 'space-between', p: 2 }}>
-        <Button 
-          onClick={deleteUser}
-          variant="text"
-          disabled={loading}
-          size="small"
-          sx={{ 
-            color: 'text.disabled',
-            fontSize: '0.75rem',
-            textTransform: 'none',
-            '&:hover': {
-              color: 'error.main',
-              backgroundColor: 'transparent'
-            }
-          }}
-        >
-          Delete User
-        </Button>
-        <Button 
-          onClick={handleClose}
-          variant="contained"
-          size="large"
-          sx={{ px: 4 }}
-        >
-          Close
-        </Button>
-      </DialogActions>
+        </DialogContent>
+        
+        {/* Sticky Footer */}
+        <DialogActions sx={{ 
+          position: 'sticky', 
+          bottom: 0, 
+          zIndex: 1, 
+          backgroundColor: 'background.paper',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          justifyContent: 'space-between', 
+          p: 2 
+        }}>
+          <Button 
+            onClick={deleteUser}
+            variant="text"
+            disabled={loading}
+            size="small"
+            sx={{ 
+              color: 'text.disabled',
+              fontSize: '0.75rem',
+              textTransform: 'none',
+              '&:hover': {
+                color: 'error.main',
+                backgroundColor: 'transparent'
+              }
+            }}
+          >
+            Delete User
+          </Button>
+          <Button 
+            onClick={handleClose}
+            variant="contained"
+            size="large"
+            sx={{ px: 4 }}
+          >
+            Close
+          </Button>
+        </DialogActions>
       </LoadingOverlay>
     </Dialog>
   );

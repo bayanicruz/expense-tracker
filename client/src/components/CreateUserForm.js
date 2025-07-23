@@ -99,9 +99,29 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <LoadingOverlay loading={loading}>
-        <DialogTitle>Create New User</DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
+        {/* Sticky Header */}
+        <DialogTitle sx={{ 
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 1, 
+          backgroundColor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }}>
+          Create New User
+        </DialogTitle>
+        
+        {/* Scrollable Content */}
+        <DialogContent sx={{ 
+          flex: 1, 
+          overflow: 'auto',
+          '&::-webkit-scrollbar': { width: '6px' },
+          '&::-webkit-scrollbar-thumb': { 
+            backgroundColor: 'rgba(0,0,0,0.2)', 
+            borderRadius: '3px' 
+          }
+        }}>
+          <Stack spacing={3} sx={{ mt: 1, pb: 2 }}>
             <TextField
               label="Full Name"
               fullWidth
@@ -121,7 +141,18 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           </Stack>
         </DialogContent>
         
-        <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
+        {/* Sticky Footer */}
+        <DialogActions sx={{ 
+          position: 'sticky', 
+          bottom: 0, 
+          zIndex: 1, 
+          backgroundColor: 'background.paper',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          flexDirection: 'column', 
+          gap: 1, 
+          p: 2 
+        }}>
           <Button 
             onClick={handleSubmit} 
             variant="contained"
