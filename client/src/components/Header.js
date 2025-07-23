@@ -7,18 +7,19 @@ import IconButton from '@mui/material/IconButton';
 import Collapse from '@mui/material/Collapse';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import titlesConfig from '../config/titles.json';
+import gossipConfig from '../config/gossip.json';
 
 function Header() {
-  const [title, setTitle] = useState('...');
+  const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('😏');
-  const [answer, setAnswer] = useState('...');
+  const [answer, setAnswer] = useState('');
   const [answerEmoji, setAnswerEmoji] = useState('💅');
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [users, setUsers] = useState([]);
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isTyping, setIsTyping] = useState(true); // Start with typing animation
 
   const API_URL = process.env.REACT_APP_API_URL || '';
 
@@ -36,20 +37,25 @@ function Header() {
     }
   };
 
-  const generateNewConversation = () => {
+  const generateNewConversation = async () => {
     // Show loading state if users haven't loaded yet
     if (!usersLoaded) {
-      setTitle('...');
+      setIsTyping(true);
       setEmoji('😏');
-      setAnswer('...');
       setAnswerEmoji('💅');
       return;
     }
 
-    const randomTitleTemplate = titlesConfig.titles[Math.floor(Math.random() * titlesConfig.titles.length)];
-    const randomEmoji = titlesConfig.snarkyEmojis[Math.floor(Math.random() * titlesConfig.snarkyEmojis.length)];
-    const randomAnswer = titlesConfig.answers[Math.floor(Math.random() * titlesConfig.answers.length)];
-    const randomAnswerEmoji = titlesConfig.answerEmojis[Math.floor(Math.random() * titlesConfig.answerEmojis.length)];
+    // Show typing animation
+    setIsTyping(true);
+    
+    // Wait for 2 seconds to show typing animation
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const randomTitleTemplate = gossipConfig.gossip[Math.floor(Math.random() * gossipConfig.gossip.length)];
+    const randomEmoji = gossipConfig.snarkyEmojis[Math.floor(Math.random() * gossipConfig.snarkyEmojis.length)];
+    const randomAnswer = gossipConfig.answers[Math.floor(Math.random() * gossipConfig.answers.length)];
+    const randomAnswerEmoji = gossipConfig.answerEmojis[Math.floor(Math.random() * gossipConfig.answerEmojis.length)];
     
     // Replace {name} placeholder with random user name
     let finalTitle = randomTitleTemplate;
@@ -66,6 +72,7 @@ function Header() {
     setEmoji(randomEmoji);
     setAnswer(randomAnswer);
     setAnswerEmoji(randomAnswerEmoji);
+    setIsTyping(false);
   };
 
   useEffect(() => {
@@ -78,6 +85,16 @@ function Header() {
       generateNewConversation();
     }
   }, [usersLoaded]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      generateNewConversation();
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isExpanded, usersLoaded]);
 
   const minSwipeDistance = 50;
 
@@ -175,18 +192,49 @@ function Header() {
                   borderRadius: '20px',
                   padding: '8px 16px',
                   maxWidth: '400px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  minHeight: '20px',
+                  display: 'flex',
+                  alignItems: 'center'
                 }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontSize: '0.85rem',
-                      fontWeight: 500,
-                      lineHeight: 1.3
-                    }}
-                  >
-                    {renderTitle(title)}
-                  </Typography>
+                  {isTyping ? (
+                    <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center', py: 0.5 }}>
+                      {[0, 1, 2].map((dot) => (
+                        <Box
+                          key={dot}
+                          sx={{
+                            width: '6px',
+                            height: '6px',
+                            backgroundColor: '#999',
+                            borderRadius: '50%',
+                            animation: 'typing 1.4s infinite',
+                            animationDelay: `${dot * 0.2}s`,
+                            '@keyframes typing': {
+                              '0%, 60%, 100%': {
+                                transform: 'translateY(0)',
+                                opacity: 0.4
+                              },
+                              '30%': {
+                                transform: 'translateY(-4px)',
+                                opacity: 1
+                              }
+                            }
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontSize: '0.85rem',
+                        fontWeight: 500,
+                        lineHeight: 1.3
+                      }}
+                    >
+                      {renderTitle(title)}
+                    </Typography>
+                  )}
                 </Box>
               </Box>
               
@@ -202,18 +250,49 @@ function Header() {
                   borderRadius: '20px',
                   padding: '6px 12px',
                   maxWidth: '200px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  minHeight: '20px',
+                  display: 'flex',
+                  alignItems: 'center'
                 }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      lineHeight: 1.3
-                    }}
-                  >
-                    {answer}
-                  </Typography>
+                  {isTyping ? (
+                    <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center', py: 0.5 }}>
+                      {[0, 1, 2].map((dot) => (
+                        <Box
+                          key={dot}
+                          sx={{
+                            width: '5px',
+                            height: '5px',
+                            backgroundColor: '#999',
+                            borderRadius: '50%',
+                            animation: 'typing 1.4s infinite',
+                            animationDelay: `${dot * 0.2}s`,
+                            '@keyframes typing': {
+                              '0%, 60%, 100%': {
+                                transform: 'translateY(0)',
+                                opacity: 0.4
+                              },
+                              '30%': {
+                                transform: 'translateY(-3px)',
+                                opacity: 1
+                              }
+                            }
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        lineHeight: 1.3
+                      }}
+                    >
+                      {answer}
+                    </Typography>
+                  )}
                 </Box>
                 <Typography 
                   variant="h6" 
