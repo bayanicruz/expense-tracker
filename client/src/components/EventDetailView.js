@@ -19,7 +19,7 @@ import {
   Breadcrumbs,
   Link
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon, Edit as EditIcon, Check as CheckIcon } from '@mui/icons-material';
 import LoadingOverlay from './LoadingOverlay';
 import useApiCall from '../hooks/useApiCall';
 
@@ -30,6 +30,9 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
     participants: [],
     settled: false
   });
+  
+  const [originalTitle, setOriginalTitle] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
   
   const [expenseItems, setExpenseItems] = useState([]);
   const [newExpenseItem, setNewExpenseItem] = useState({ itemName: '', amount: '' });
@@ -60,6 +63,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
         if (response.ok) {
           const event = await response.json();
           setEventData(event);
+          setOriginalTitle(event.title || '');
           
           // Handle different participant formats
           if (event.participants && event.participants.length > 0) {
@@ -333,6 +337,8 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
   const handleClose = () => {
     // Clear all state before closing
     setEventData({ title: '', eventDate: '', participants: [], settled: false });
+    setOriginalTitle('');
+    setIsEditingTitle(false);
     setExpenseItems([]);
     setParticipantDetails([]);
     setNewExpenseItem({ itemName: '', amount: '' });
@@ -371,6 +377,45 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
     return participantDetails.reduce((sum, p) => sum + (p.amountPaid || 0), 0).toFixed(2);
   };
 
+  const handleTitleSave = async () => {
+    // Only save if the title has actually changed
+    if (eventData.title.trim() === originalTitle.trim()) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    await apiCall(async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/events/${eventId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: eventData.title
+          })
+        });
+
+        if (response.ok) {
+          setOriginalTitle(eventData.title);
+          setIsEditingTitle(false);
+          if (onEventUpdated) onEventUpdated();
+        }
+      } catch (error) {
+        console.error('Error updating event title:', error);
+      }
+    });
+  };
+
+  const handleTitleCancelEdit = () => {
+    setEventData(prev => ({ ...prev, title: originalTitle }));
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleStartEdit = () => {
+    setIsEditingTitle(true);
+  };
+
   if (loading) {
     return (
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -384,64 +429,118 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <LoadingOverlay loading={apiLoading}>
-        <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ flexGrow: 1 }}>
-            {breadcrumbUser && (
-              <Breadcrumbs sx={{ mb: 1 }}>
-                <Link 
-                  component="button" 
-                  variant="body2" 
-                  onClick={() => onBreadcrumbClick ? onBreadcrumbClick() : onClose()}
-                  sx={{ 
-                    textDecoration: 'none',
-                    color: 'primary.main',
-                    '&:hover': { textDecoration: 'underline' }
-                  }}
-                >
-                  {breadcrumbUser.name}
-                </Link>
-                <Typography variant="body2" color="text.primary">
-                  {eventData.title || 'Event Details'}
-                </Typography>
-              </Breadcrumbs>
-            )}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Typography variant="h5" component="div">
-                {eventData.title || 'Event Details'}
+        {/* Sticky Header */}
+        <DialogTitle sx={{ 
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 1, 
+          backgroundColor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ flexGrow: 1 }}>
+              {breadcrumbUser && (
+                <Breadcrumbs sx={{ mb: 1 }}>
+                  <Link 
+                    component="button" 
+                    variant="body2" 
+                    onClick={() => onBreadcrumbClick ? onBreadcrumbClick() : onClose()}
+                    sx={{ 
+                      textDecoration: 'none',
+                      color: 'primary.main',
+                      '&:hover': { textDecoration: 'underline' }
+                    }}
+                  >
+                    {breadcrumbUser.name}
+                  </Link>
+                  <Typography variant="body2" color="text.primary">
+                    {eventData.title || 'Event Details'}
+                  </Typography>
+                </Breadcrumbs>
+              )}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                {isEditingTitle ? (
+                  <>
+                    <TextField
+                      value={eventData.title}
+                      onChange={(e) => setEventData(prev => ({ ...prev, title: e.target.value }))}
+                      variant="standard"
+                      size="small"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleTitleSave();
+                        } else if (e.key === 'Escape') {
+                          handleTitleCancelEdit();
+                        }
+                      }}
+                      sx={{ 
+                        '& .MuiInput-root': {
+                          fontSize: '1.5rem',
+                          fontWeight: 400
+                        }
+                      }}
+                    />
+                    <IconButton size="small" onClick={handleTitleSave} color="primary">
+                      <CheckIcon />
+                    </IconButton>
+                    <IconButton size="small" onClick={handleTitleCancelEdit}>
+                      <CloseIcon />
+                    </IconButton>
+                  </>
+                ) : (
+                  <>
+                    <Typography variant="h5" component="div">
+                      {eventData.title || 'Event Details'}
+                    </Typography>
+                    <IconButton size="small" onClick={handleTitleStartEdit}>
+                      <EditIcon />
+                    </IconButton>
+                  </>
+                )}
+                {parseFloat(calculateRemainingBalance()) === 0 && expenseItems.length > 0 && (
+                  <Typography variant="body2" sx={{ 
+                    color: '#4caf50', 
+                    fontWeight: 'medium',
+                    backgroundColor: '#e8f5e8',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem'
+                  }}>
+                    Settled
+                  </Typography>
+                )}
+              </Box>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                {eventData.eventDate ? formatDate(eventData.eventDate) : ''}
               </Typography>
-              {parseFloat(calculateRemainingBalance()) === 0 && expenseItems.length > 0 && (
+              {eventData.owner && (
                 <Typography variant="body2" sx={{ 
-                  color: '#4caf50', 
+                  color: '#1976d2', 
                   fontWeight: 'medium',
-                  backgroundColor: '#e8f5e8',
-                  padding: '2px 6px',
+                  backgroundColor: '#e3f2fd',
+                  padding: '4px 8px',
                   borderRadius: '4px',
-                  fontSize: '0.75rem'
+                  display: 'inline-block'
                 }}>
-                  Settled
+                  Owner: {eventData.owner.name || 'Unknown'}
                 </Typography>
               )}
             </Box>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-              {eventData.eventDate ? formatDate(eventData.eventDate) : ''}
-            </Typography>
-            {eventData.owner && (
-              <Typography variant="body2" sx={{ 
-                color: '#1976d2', 
-                fontWeight: 'medium',
-                backgroundColor: '#e3f2fd',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                display: 'inline-block'
-              }}>
-                Owner: {eventData.owner.name || 'Unknown'}
-              </Typography>
-            )}
           </Box>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
+        </DialogTitle>
+        
+        {/* Scrollable Content */}
+        <DialogContent sx={{ 
+          flex: 1, 
+          overflow: 'auto',
+          '&::-webkit-scrollbar': { width: '6px' },
+          '&::-webkit-scrollbar-thumb': { 
+            backgroundColor: 'rgba(0,0,0,0.2)', 
+            borderRadius: '3px' 
+          }
+        }}>
         <Stack spacing={3} sx={{ mt: 1 }}>
 
           {/* Financial Summary */}
@@ -719,7 +818,16 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
         </Stack>
       </DialogContent>
       
-      <DialogActions sx={{ justifyContent: 'space-between', p: 2 }}>
+      <DialogActions sx={{ 
+        position: 'sticky', 
+        bottom: 0, 
+        zIndex: 1, 
+        backgroundColor: 'background.paper',
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        justifyContent: 'space-between', 
+        p: 2 
+      }}>
         <Button 
           onClick={deleteEvent}
           variant="text"
