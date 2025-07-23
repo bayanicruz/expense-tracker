@@ -17,7 +17,9 @@ function Header() {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [users, setUsers] = useState([]);
+  const [events, setEvents] = useState([]);
   const [usersLoaded, setUsersLoaded] = useState(false);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [isTyping, setIsTyping] = useState(true); // Start with typing animation
 
@@ -37,9 +39,23 @@ function Header() {
     }
   };
 
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/events`);
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data);
+        setEventsLoaded(true);
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      setEventsLoaded(true); // Still mark as loaded even if failed
+    }
+  };
+
   const generateNewConversation = async () => {
-    // Show loading state if users haven't loaded yet
-    if (!usersLoaded) {
+    // Show loading state if data hasn't loaded yet
+    if (!usersLoaded || !eventsLoaded) {
       setIsTyping(true);
       setEmoji('😏');
       setAnswerEmoji('💅');
@@ -52,23 +68,40 @@ function Header() {
     // Wait for 2 seconds to show typing animation
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const randomTitleTemplate = gossipConfig.gossip[Math.floor(Math.random() * gossipConfig.gossip.length)];
-    const randomEmoji = gossipConfig.snarkyEmojis[Math.floor(Math.random() * gossipConfig.snarkyEmojis.length)];
-    const randomAnswer = gossipConfig.answers[Math.floor(Math.random() * gossipConfig.answers.length)];
-    const randomAnswerEmoji = gossipConfig.answerEmojis[Math.floor(Math.random() * gossipConfig.answerEmojis.length)];
+    // Randomly choose between user gossip and event gossip (50/50 chance)
+    const useUserGossip = Math.random() < 0.5;
     
-    // Replace {name} placeholder with random user name
-    let finalTitle = randomTitleTemplate;
-    if (users.length > 0) {
+    let randomTitleTemplate, randomAnswer;
+    
+    if (useUserGossip && users.length > 0) {
+      // Use user gossip
+      randomTitleTemplate = gossipConfig.userGossip[Math.floor(Math.random() * gossipConfig.userGossip.length)];
+      randomAnswer = gossipConfig.userAnswers[Math.floor(Math.random() * gossipConfig.userAnswers.length)];
+      
+      // Replace {name} placeholder with random user name
       const randomUser = users[Math.floor(Math.random() * users.length)];
       const userName = randomUser.name || randomUser.username || `User ${randomUser._id}`;
-      finalTitle = randomTitleTemplate.replace(/{name}/g, userName);
+      randomTitleTemplate = randomTitleTemplate.replace(/{name}/g, userName);
+    } else if (events.length > 0) {
+      // Use event gossip
+      randomTitleTemplate = gossipConfig.eventGossip[Math.floor(Math.random() * gossipConfig.eventGossip.length)];
+      randomAnswer = gossipConfig.eventAnswers[Math.floor(Math.random() * gossipConfig.eventAnswers.length)];
+      
+      // Replace {event} placeholder with random event name
+      const randomEvent = events[Math.floor(Math.random() * events.length)];
+      const eventName = randomEvent.title || randomEvent.name || `Event ${randomEvent._id}`;
+      randomTitleTemplate = randomTitleTemplate.replace(/{event}/g, eventName);
     } else {
-      // Fallback if no users are available
-      finalTitle = randomTitleTemplate.replace(/{name}/g, 'Chico');
+      // Fallback to user gossip with default name if no data available
+      randomTitleTemplate = gossipConfig.userGossip[Math.floor(Math.random() * gossipConfig.userGossip.length)];
+      randomAnswer = gossipConfig.userAnswers[Math.floor(Math.random() * gossipConfig.userAnswers.length)];
+      randomTitleTemplate = randomTitleTemplate.replace(/{name}/g, 'Chico');
     }
     
-    setTitle(finalTitle);
+    const randomEmoji = gossipConfig.snarkyEmojis[Math.floor(Math.random() * gossipConfig.snarkyEmojis.length)];
+    const randomAnswerEmoji = gossipConfig.answerEmojis[Math.floor(Math.random() * gossipConfig.answerEmojis.length)];
+    
+    setTitle(randomTitleTemplate);
     setEmoji(randomEmoji);
     setAnswer(randomAnswer);
     setAnswerEmoji(randomAnswerEmoji);
@@ -77,14 +110,15 @@ function Header() {
 
   useEffect(() => {
     fetchUsers();
+    fetchEvents();
   }, []);
 
   useEffect(() => {
-    // Generate conversation when users are loaded (or loading is complete)
-    if (usersLoaded) {
+    // Generate conversation when both users and events are loaded (or loading is complete)
+    if (usersLoaded && eventsLoaded) {
       generateNewConversation();
     }
-  }, [usersLoaded]);
+  }, [usersLoaded, eventsLoaded]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -94,7 +128,7 @@ function Header() {
     return () => {
       clearInterval(interval);
     };
-  }, [isExpanded, usersLoaded]);
+  }, [isExpanded, usersLoaded, eventsLoaded]);
 
   const minSwipeDistance = 50;
 
