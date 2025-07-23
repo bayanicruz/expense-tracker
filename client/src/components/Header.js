@@ -179,7 +179,7 @@ function Header() {
     // Pick a reminder type: 0 = owes, 1 = total cost, 2 = remaining, 3 = settled, 4 = paid, 5 = overpaid, 6 = partial
     const reminderType = Math.floor(Math.random() * 7);
     if (reminderType === 0) {
-      setReminder(`💸 ${participantName} still owes **${ownerName}** **$${amount.toLocaleString()}** for **${eventName}**.`);
+      setReminder(`💸 **${participantName}** still owes **${ownerName}** **$${amount.toLocaleString()}** for **${eventName}**.`);
     } else if (reminderType === 1) {
       const total = event.totalAmount || 0;
       setReminder(`💡 **${eventName}** cost a total of **$${total.toLocaleString()}**.`);
@@ -198,7 +198,7 @@ function Header() {
     } else if (reminderType === 6 && paymentStatus === 'partial') {
       setReminder(`🕗 **${paymentParticipantName}** has partially paid for **${eventName}**.`);
     } else {
-      setReminder(`💸 ${participantName} still owes **${ownerName}** **$${amount.toLocaleString()}** for **${eventName}**.`);
+      setReminder(`💸 **${participantName}** still owes **${ownerName}** **$${amount.toLocaleString()}** for **${eventName}**.`);
     }
     setIsTyping(false);
   };
@@ -295,7 +295,7 @@ function Header() {
   };
 
   return (
-    <AppBar position={(enableGossip || enableReminders) && isExpanded ? "sticky" : "static"} sx={{ 
+    <AppBar position="sticky" sx={{ 
       backgroundColor: (!enableGossip && !enableReminders) || !isExpanded ? '#1976d2' : 'white', 
       color: (!enableGossip && !enableReminders) || !isExpanded ? 'white' : 'black' 
     }}>
@@ -523,55 +523,47 @@ function Header() {
                     variant="h6" 
                     sx={{ fontSize: '1.2rem', color: 'black', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
                   >
-                    🤖
+                    📌
                   </Typography>
                   <Box sx={{
                     backgroundColor: '#fffde7',
                     color: 'black',
                     borderRadius: '8px',
-                    padding: '8px 14px',
-                    maxWidth: '340px',
+                    padding: '6px 10px',
+                    width: '100%',
+                    maxWidth: 'none',
                     boxShadow: '0 1.5px 6px 0 rgba(0,0,0,0.07)',
                     minHeight: '22px',
                     display: 'flex',
                     alignItems: 'center',
                     fontFamily: '"Shadows Into Light", "Comic Sans MS", "Comic Sans", cursive, sans-serif',
-                    fontSize: '1.01rem',
+                    fontSize: '0.97rem',
                     letterSpacing: '0.01em',
-                    lineHeight: 1.35,
+                    lineHeight: 1.25,
                     transition: 'background 0.2s',
                     border: '1px solid #ffe082',
                   }}>
                     {isTyping ? (
-                      <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center', py: 0.5 }}>
-                        {[0, 1, 2].map((dot) => (
-                          <Box
-                            key={dot}
-                            sx={{
-                              width: '6px',
-                              height: '6px',
-                              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                              borderRadius: '50%',
-                              animation: 'typing 1.4s infinite',
-                              animationDelay: `${dot * 0.2}s`,
-                              '@keyframes typing': {
-                                '0%, 60%, 100%': {
-                                  transform: 'translateY(0)',
-                                  opacity: 0.4
-                                },
-                                '30%': {
-                                  transform: 'translateY(-4px)',
-                                  opacity: 1
-                                }
-                              }
-                            }}
-                          />
-                        ))}
+                      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', py: 0.5 }}>
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            border: '3px solid #ffe082',
+                            borderTop: '3px solid #ffd54f',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                            '@keyframes spin': {
+                              '0%': { transform: 'rotate(0deg)' },
+                              '100%': { transform: 'rotate(360deg)' }
+                            }
+                          }}
+                        />
                       </Box>
                     ) : (
                       <Typography 
                         variant="body2" 
-                        sx={{ fontSize: '1.13rem', fontWeight: 500, lineHeight: 1.4 }}
+                        sx={{ fontSize: '0.97rem', fontWeight: 500, lineHeight: 1.25, width: '100%' }}
                       >
                         {renderReminder(reminder)}
                       </Typography>
@@ -612,7 +604,7 @@ function Header() {
               }
             }}
           >
-            {isExpanded ? '🤫 Go chismis-free' : '👂 Maki-chismis'}
+            {isExpanded ? '🚫 Hide Reminders' : '📌 Show Reminders'}
           </Typography>
         </Box>
       )}
