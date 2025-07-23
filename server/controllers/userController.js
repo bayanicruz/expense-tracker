@@ -9,9 +9,10 @@ const getAllUsers = async (req, res) => {
     // Calculate running balance for each user
     const usersWithBalance = await Promise.all(
       users.map(async (user) => {
-        // Find all events where user is a participant
+        // Find all events where user is a participant BUT NOT the owner
         const events = await Event.find({
-          'participants.user': user._id
+          'participants.user': user._id,
+          owner: { $ne: user._id }  // Exclude events owned by this user
         }).populate('participants.user', 'name');
 
         let totalOwed = 0;
@@ -156,9 +157,10 @@ const getUserExpenses = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Find all events where user is a participant OR owner
+    // Find all events where user is a participant BUT NOT the owner
     const participatedEvents = await Event.find({
-      'participants.user': id
+      'participants.user': id,
+      owner: { $ne: id }  // Exclude events owned by this user
     }).populate([
       { path: 'owner', select: 'name' },
       { path: 'participants.user', select: 'name' }
@@ -187,10 +189,10 @@ const getUserExpenses = async (req, res) => {
       const amountPaid = userParticipation ? userParticipation.amountPaid || 0 : 0;
       const amountOwed = Math.max(0, userShare - amountPaid);
       
+      // Add to totalOwed since we've already excluded owned events in the query
       totalOwed += amountOwed;
 
       // Calculate additional fields for owner view
-      const isOwner = event.owner && event.owner._id.toString() === id;
       const splitPerPerson = participantCount > 0 ? eventTotal / participantCount : 0;
       const totalAmountPaid = event.participants.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
       const remainingBalance = Math.max(0, eventTotal - totalAmountPaid);

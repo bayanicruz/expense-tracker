@@ -475,6 +475,12 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                                     <Typography variant="body2" color="textSecondary">
                                       Split: ${(event.splitPerPerson || 0).toFixed(2)}
                                     </Typography>
+                                    {/* Show owner's payment if they are also a participant */}
+                                    {event.userShare && event.userShare > 0 && (
+                                      <Typography variant="body2" color="primary" sx={{ fontWeight: 'medium' }}>
+                                        Share: ${(event.amountPaid || 0).toFixed(2)}
+                                      </Typography>
+                                    )}
                                     <Typography variant="body2" color="textSecondary">
                                       Collected: ${(event.totalAmountPaid || 0).toFixed(2)}
                                     </Typography>
