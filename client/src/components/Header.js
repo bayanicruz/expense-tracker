@@ -141,7 +141,10 @@ function Header() {
   };
 
   return (
-    <AppBar position="sticky">
+    <AppBar position="sticky" sx={{ 
+      backgroundColor: isExpanded ? 'white' : '#1976d2', 
+      color: isExpanded ? 'black' : 'white' 
+    }}>
       <Toolbar sx={{ justifyContent: 'center', py: isExpanded ? 2 : 1, minHeight: isExpanded ? 'auto' : '48px' }}>
         <Box sx={{ maxWidth: '600px', width: '100%', position: 'relative' }}>
           {/* Collapsed State - Simple Title */}
@@ -181,13 +184,14 @@ function Header() {
                   variant="h6" 
                   sx={{ 
                     fontSize: '1.2rem',
-                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                    color: 'black',
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
                   }}
                 >
                   {emoji}:
                 </Typography>
                 <Box sx={{
-                  backgroundColor: 'white',
+                  backgroundColor: '#e0e0e0',
                   color: 'black',
                   borderRadius: '20px',
                   padding: '8px 16px',
@@ -205,7 +209,7 @@ function Header() {
                           sx={{
                             width: '6px',
                             height: '6px',
-                            backgroundColor: '#999',
+                            backgroundColor: 'rgba(0, 0, 0, 0.4)',
                             borderRadius: '50%',
                             animation: 'typing 1.4s infinite',
                             animationDelay: `${dot * 0.2}s`,
@@ -245,8 +249,8 @@ function Header() {
                 gap: 1
               }}>
                 <Box sx={{
-                  backgroundColor: 'white',
-                  color: 'black',
+                  backgroundColor: '#1976d2',
+                  color: 'white',
                   borderRadius: '20px',
                   padding: '6px 12px',
                   maxWidth: '200px',
@@ -263,7 +267,7 @@ function Header() {
                           sx={{
                             width: '5px',
                             height: '5px',
-                            backgroundColor: '#999',
+                            backgroundColor: 'rgba(255, 255, 255, 0.7)',
                             borderRadius: '50%',
                             animation: 'typing 1.4s infinite',
                             animationDelay: `${dot * 0.2}s`,
@@ -298,7 +302,8 @@ function Header() {
                   variant="h6" 
                   sx={{ 
                     fontSize: '1rem',
-                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                    color: 'black',
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
                   }}
                 >
                   :{answerEmoji}
