@@ -39,6 +39,7 @@ A full-stack expense tracking application built with the MERN stack, featuring r
 - Interactive expandable lists
 - Real-time data updates
 - Intuitive navigation and breadcrumbs
+- Graceful cold start handling with user feedback
 
 ## 🏗️ Architecture
 
