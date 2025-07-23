@@ -3,6 +3,10 @@ import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Collapse from '@mui/material/Collapse';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import titlesConfig from '../config/titles.json';
 
 function Header() {
@@ -14,6 +18,7 @@ function Header() {
   const [touchEnd, setTouchEnd] = useState(null);
   const [users, setUsers] = useState([]);
   const [usersLoaded, setUsersLoaded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const API_URL = process.env.REACT_APP_API_URL || '';
 
@@ -76,6 +81,10 @@ function Header() {
 
   const minSwipeDistance = 50;
 
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+  };
+
   const renderTitle = (text) => {
     // Split text by **bold** markers and render accordingly
     const parts = text.split(/\*\*(.*?)\*\*/g);
@@ -116,98 +125,142 @@ function Header() {
 
   return (
     <AppBar position="sticky">
-      <Toolbar sx={{ justifyContent: 'center', py: 2 }}>
-        <Box 
-          sx={{
-            maxWidth: '600px',
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            cursor: 'pointer',
-            userSelect: 'none',
-            '&:active': {
-              transform: 'scale(0.98)',
-              transition: 'transform 0.1s ease'
-            }
-          }}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-          onClick={generateNewConversation}
-        >
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1
-          }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontSize: '1.2rem',
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
-              }}
-            >
-              {emoji}:
-            </Typography>
-            <Box sx={{
-              backgroundColor: 'white',
-              color: 'black',
-              borderRadius: '20px',
-              padding: '8px 16px',
-              maxWidth: '400px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-            }}>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  lineHeight: 1.3
-                }}
-              >
-                {renderTitle(title)}
+      <Toolbar sx={{ justifyContent: 'center', py: isExpanded ? 2 : 1, minHeight: isExpanded ? 'auto' : '48px' }}>
+        <Box sx={{ maxWidth: '600px', width: '100%', position: 'relative' }}>
+          {/* Collapsed State - Simple Title */}
+          {!isExpanded && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                Expense Tracker
               </Typography>
             </Box>
-          </Box>
+          )}
           
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'flex-end',
-            alignItems: 'center', 
-            gap: 1
-          }}>
-            <Box sx={{
-              backgroundColor: 'white',
-              color: 'black',
-              borderRadius: '20px',
-              padding: '6px 12px',
-              maxWidth: '200px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-            }}>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  lineHeight: 1.3
-                }}
-              >
-                {answer}
-              </Typography>
-            </Box>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontSize: '1rem',
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+          {/* Collapsible Content */}
+          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+            <Box 
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                cursor: 'pointer',
+                userSelect: 'none',
+                '&:active': {
+                  transform: 'scale(0.98)',
+                  transition: 'transform 0.1s ease'
+                }
               }}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onClick={generateNewConversation}
             >
-              :{answerEmoji}
-            </Typography>
-          </Box>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1
+              }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontSize: '1.2rem',
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                  }}
+                >
+                  {emoji}:
+                </Typography>
+                <Box sx={{
+                  backgroundColor: 'white',
+                  color: 'black',
+                  borderRadius: '20px',
+                  padding: '8px 16px',
+                  maxWidth: '400px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                      lineHeight: 1.3
+                    }}
+                  >
+                    {renderTitle(title)}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'flex-end',
+                alignItems: 'center', 
+                gap: 1
+              }}>
+                <Box sx={{
+                  backgroundColor: 'white',
+                  color: 'black',
+                  borderRadius: '20px',
+                  padding: '6px 12px',
+                  maxWidth: '200px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      lineHeight: 1.3
+                    }}
+                  >
+                    {answer}
+                  </Typography>
+                </Box>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontSize: '1rem',
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                  }}
+                >
+                  :{answerEmoji}
+                </Typography>
+              </Box>
+            </Box>
+          </Collapse>
+
         </Box>
       </Toolbar>
+      
+      {/* Hide/Show Conversation Button - Below header border */}
+      <Box sx={{ 
+        position: 'absolute',
+        top: 'calc(100% + 4px)',
+        left: '12px',
+        zIndex: 100,
+        backgroundColor: 'rgba(248, 248, 248, 0.8)',
+        backdropFilter: 'blur(6px)',
+        borderRadius: '6px',
+        padding: '1px 6px',
+        border: '1px solid rgba(0, 0, 0, 0.03)',
+        transition: 'all 0.2s ease'
+      }}>
+        <Typography
+          onClick={toggleExpanded}
+          variant="caption"
+          sx={{ 
+            color: 'rgba(0, 0, 0, 0.5)',
+            fontSize: '0.6rem',
+            cursor: 'pointer',
+            fontWeight: 400,
+            transition: 'color 0.2s ease',
+            '&:hover': {
+              color: 'rgba(0, 0, 0, 0.7)',
+            }
+          }}
+        >
+          {isExpanded ? '🤫 Chismis-free' : '👂 Maki chismis'}
+        </Typography>
+      </Box>
     </AppBar>
   );
 }
