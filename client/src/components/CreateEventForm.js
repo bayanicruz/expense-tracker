@@ -17,6 +17,8 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
+import LoadingOverlay from './LoadingOverlay';
+import useApiCall from '../hooks/useApiCall';
 
 function CreateEventForm({ open, onClose, onEventCreated }) {
   const [eventData, setEventData] = useState({
@@ -40,6 +42,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   const [availableOwners, setAvailableOwners] = useState([]);
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [ownerSearchLoading, setOwnerSearchLoading] = useState(false);
+  const { loading, apiCall } = useApiCall();
 
   const handleEventChange = (field, value) => {
     setEventData(prev => ({
@@ -203,84 +206,86 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   };
 
   const handleSubmit = async () => {
-    try {
-      // Create event first
-      const eventResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(eventData)
-      });
-
-      if (!eventResponse.ok) {
-        throw new Error('Failed to create event');
-      }
-
-      const createdEvent = await eventResponse.json();
-
-      // Create expense items for the event
-      const validExpenseItems = expenseItems.filter(
-        item => item.itemName.trim() && item.amount && parseFloat(item.amount) > 0
-      );
-
-      for (const item of validExpenseItems) {
-        await fetch(`${process.env.REACT_APP_API_URL}/api/expense-items`, {
+    await apiCall(async () => {
+      try {
+        // Create event first
+        const eventResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/events`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            eventId: createdEvent._id,
-            itemName: item.itemName,
-            amount: parseFloat(item.amount)
-          })
+          body: JSON.stringify(eventData)
         });
-      }
 
-      // Calculate total and set owner's payment to their split amount
-      if (validExpenseItems.length > 0) {
-        const totalAmount = validExpenseItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
-        const participantCount = selectedParticipants.length;
-        const splitAmount = participantCount > 0 ? totalAmount / participantCount : 0;
+        if (!eventResponse.ok) {
+          throw new Error('Failed to create event');
+        }
 
-        // Update owner's payment amount to their split
-        if (selectedOwner && splitAmount > 0) {
-          const ownerParticipant = createdEvent.participants.find(p => 
-            (typeof p.user === 'string' ? p.user : p.user._id) === selectedOwner._id
-          );
-          
-          if (ownerParticipant) {
-            await fetch(`${process.env.REACT_APP_API_URL}/api/events/${createdEvent._id}/participants/${selectedOwner._id}/payment`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                amountPaid: splitAmount
-              })
-            });
+        const createdEvent = await eventResponse.json();
+
+        // Create expense items for the event
+        const validExpenseItems = expenseItems.filter(
+          item => item.itemName.trim() && item.amount && parseFloat(item.amount) > 0
+        );
+
+        for (const item of validExpenseItems) {
+          await fetch(`${process.env.REACT_APP_API_URL}/api/expense-items`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              eventId: createdEvent._id,
+              itemName: item.itemName,
+              amount: parseFloat(item.amount)
+            })
+          });
+        }
+
+        // Calculate total and set owner's payment to their split amount
+        if (validExpenseItems.length > 0) {
+          const totalAmount = validExpenseItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+          const participantCount = selectedParticipants.length;
+          const splitAmount = participantCount > 0 ? totalAmount / participantCount : 0;
+
+          // Update owner's payment amount to their split
+          if (selectedOwner && splitAmount > 0) {
+            const ownerParticipant = createdEvent.participants.find(p => 
+              (typeof p.user === 'string' ? p.user : p.user._id) === selectedOwner._id
+            );
+            
+            if (ownerParticipant) {
+              await fetch(`${process.env.REACT_APP_API_URL}/api/events/${createdEvent._id}/participants/${selectedOwner._id}/payment`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  amountPaid: splitAmount
+                })
+              });
+            }
           }
         }
-      }
 
-      // Reset form
-      setEventData({ title: '', eventDate: new Date().toISOString().split('T')[0], owner: '', participants: [] });
-      setExpenseItems([{ itemName: 'Expense', amount: '' }]);
-      setSelectedParticipants([]);
-      setSelectedOwner(null);
-      setUserSearch('');
-      setAvailableUsers([]);
-      setAllUsers([]);
-      setOwnerSearch('');
-      setAvailableOwners([]);
-      
-      // Notify parent and close
-      if (onEventCreated) onEventCreated();
-      onClose();
-    } catch (error) {
-      console.error('Error creating event:', error);
-    }
+        // Reset form
+        setEventData({ title: '', eventDate: new Date().toISOString().split('T')[0], owner: '', participants: [] });
+        setExpenseItems([{ itemName: 'Expense', amount: '' }]);
+        setSelectedParticipants([]);
+        setSelectedOwner(null);
+        setUserSearch('');
+        setAvailableUsers([]);
+        setAllUsers([]);
+        setOwnerSearch('');
+        setAvailableOwners([]);
+        
+        // Notify parent and close
+        if (onEventCreated) onEventCreated();
+        onClose();
+      } catch (error) {
+        console.error('Error creating event:', error);
+      }
+    });
   };
 
   const calculateTotal = () => {
@@ -313,7 +318,8 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>Create New Event</DialogTitle>
+      <LoadingOverlay loading={loading}>
+        <DialogTitle>Create New Event</DialogTitle>
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 1 }}>
           {/* Event Details */}
@@ -586,7 +592,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
         <Button 
           onClick={handleSubmit} 
           variant="contained"
-          disabled={!eventData.title || !eventData.eventDate || !eventData.owner}
+          disabled={!eventData.title || !eventData.eventDate || !eventData.owner || loading}
           fullWidth
           size="large"
           sx={{ py: 2 }}
@@ -602,6 +608,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
           Cancel
         </Button>
       </DialogActions>
+      </LoadingOverlay>
     </Dialog>
   );
 }

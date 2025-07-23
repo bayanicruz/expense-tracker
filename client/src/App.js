@@ -17,11 +17,13 @@ import Header from './components/Header';
 import UsersList from './components/UsersList';
 import EventsList from './components/EventsList';
 import Analytics from './components/Analytics';
+import LoadingOverlay from './components/LoadingOverlay';
 
 function App() {
   const [usersOpen, setUsersOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(true);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [listsLoading, setListsLoading] = useState(false);
   const usersListRef = useRef(null);
 
   const handleUsersClick = () => {
@@ -73,20 +75,24 @@ function App() {
           p: 3,
           backgroundColor: '#f9f9f9'
         }}>
-          <Stack spacing={2}>
-            <UsersList 
-              ref={usersListRef}
-              isOpen={usersOpen}
-              onToggle={handleUsersClick}
-              onUserClick={handleUserClick}
-            />
-            <EventsList 
-              isOpen={eventsOpen}
-              onToggle={handleEventsClick}
-              onEventClick={handleEventClick}
-              onDataChanged={handleDataChanged}
-            />
-          </Stack>
+          <LoadingOverlay loading={listsLoading}>
+            <Stack spacing={2}>
+              <UsersList 
+                ref={usersListRef}
+                isOpen={usersOpen}
+                onToggle={handleUsersClick}
+                onUserClick={handleUserClick}
+                onLoadingChange={setListsLoading}
+              />
+              <EventsList 
+                isOpen={eventsOpen}
+                onToggle={handleEventsClick}
+                onEventClick={handleEventClick}
+                onDataChanged={handleDataChanged}
+                onLoadingChange={setListsLoading}
+              />
+            </Stack>
+          </LoadingOverlay>
           
           {/* Main Content Footer */}
           <Box sx={{ 

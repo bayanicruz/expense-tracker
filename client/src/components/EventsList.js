@@ -3,12 +3,14 @@ import { Box, Typography, ListItemText } from '@mui/material';
 import ExpandableList from './ExpandableList';
 import CreateEventForm from './CreateEventForm';
 import EventDetailView from './EventDetailView';
+import useApiCall from '../hooks/useApiCall';
 
-function EventsList({ isOpen, onToggle, onEventClick, onDataChanged }) {
+function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingChange }) {
   const [events, setEvents] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEventDetail, setShowEventDetail] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const { loading, apiCall } = useApiCall(onLoadingChange);
 
   useEffect(() => {
     if (isOpen) {
@@ -19,41 +21,43 @@ function EventsList({ isOpen, onToggle, onEventClick, onDataChanged }) {
   const API_URL = process.env.REACT_APP_API_URL || '';
 
   const fetchEvents = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/events`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response:', text);
-        throw new Error('Server returned non-JSON response');
-      }
-      
-      const data = await response.json();
-      
-      // Sort events: unsettled events first, then settled events
-      const sortedEvents = data.sort((a, b) => {
-        const aSettled = (a.remainingBalance || 0) === 0 && (a.totalAmount || 0) > 0;
-        const bSettled = (b.remainingBalance || 0) === 0 && (b.totalAmount || 0) > 0;
+    await apiCall(async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/events`);
         
-        // If one is settled and the other isn't, put unsettled first
-        if (aSettled !== bSettled) {
-          return aSettled ? 1 : -1;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        // If both have same settled status, sort by date (most recent first)
-        return new Date(b.eventDate) - new Date(a.eventDate);
-      });
-      
-      setEvents(sortedEvents);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      setEvents([]); // Set empty array on error
-    }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('Non-JSON response:', text);
+          throw new Error('Server returned non-JSON response');
+        }
+        
+        const data = await response.json();
+        
+        // Sort events: unsettled events first, then settled events
+        const sortedEvents = data.sort((a, b) => {
+          const aSettled = (a.remainingBalance || 0) === 0 && (a.totalAmount || 0) > 0;
+          const bSettled = (b.remainingBalance || 0) === 0 && (b.totalAmount || 0) > 0;
+          
+          // If one is settled and the other isn't, put unsettled first
+          if (aSettled !== bSettled) {
+            return aSettled ? 1 : -1;
+          }
+          
+          // If both have same settled status, sort by date (most recent first)
+          return new Date(b.eventDate) - new Date(a.eventDate);
+        });
+        
+        setEvents(sortedEvents);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        setEvents([]); // Set empty array on error
+      }
+    });
   };
 
   const renderEventItem = (event) => {
