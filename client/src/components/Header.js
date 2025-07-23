@@ -249,8 +249,8 @@ function Header() {
                 gap: 1
               }}>
                 <Box sx={{
-                  backgroundColor: '#1976d2',
-                  color: 'white',
+                  backgroundColor: isTyping ? '#e0e0e0' : '#1976d2',
+                  color: isTyping ? 'black' : 'white',
                   borderRadius: '20px',
                   padding: '6px 12px',
                   maxWidth: '200px',
@@ -267,7 +267,7 @@ function Header() {
                           sx={{
                             width: '5px',
                             height: '5px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.4)',
                             borderRadius: '50%',
                             animation: 'typing 1.4s infinite',
                             animationDelay: `${dot * 0.2}s`,
