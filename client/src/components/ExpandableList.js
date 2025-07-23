@@ -24,11 +24,41 @@ function ExpandableList({
     <Box>
       <Button 
         variant="contained" 
-        size="large" 
+        size="medium" 
         fullWidth
-        sx={{ py: 2 }}
+        sx={{ 
+          py: 1.2,
+          px: 2,
+          background: '#1976d2',
+          borderRadius: '6px',
+          boxShadow: 'none',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+          textTransform: 'none',
+          justifyContent: 'space-between',
+          minHeight: '42px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          '&:hover': {
+            background: '#1565c0',
+            boxShadow: '0 1px 4px rgba(25, 118, 210, 0.25)',
+            '& .chevron': {
+              opacity: 1,
+            }
+          },
+          '& .MuiButton-endIcon': {
+            marginLeft: 0,
+            minWidth: '20px',
+            '& .chevron': {
+              fontSize: '1rem',
+              opacity: 0.7,
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            }
+          },
+          transition: 'all 0.2s ease-out',
+        }}
         onClick={onToggle}
-        endIcon={isOpen ? <ExpandLess /> : <ExpandMore />}
+        endIcon={<ExpandMore className="chevron" />}
       >
         {title}
       </Button>
