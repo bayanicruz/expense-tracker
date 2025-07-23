@@ -3,6 +3,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Collapse from '@mui/material/Collapse';
 import gossipConfig from '../config/gossip.json';
+import useAutoRefreshTimer from '../hooks/useAutoRefreshTimer';
 
 function GossipDisplay({ users, events, allDataLoaded, isExpanded }) {
   const [title, setTitle] = useState('');
@@ -59,6 +60,12 @@ function GossipDisplay({ users, events, allDataLoaded, isExpanded }) {
     setIsTyping(false);
   }, [users, events, allDataLoaded]);
 
+  const { handleManualTrigger } = useAutoRefreshTimer(
+    generateNewConversation,
+    10000,
+    isExpanded
+  );
+
   const renderTitle = (text) => {
     const parts = text.split(/\*\*(.*?)\*\*/g);
     return parts.map((part, index) => {
@@ -103,16 +110,6 @@ function GossipDisplay({ users, events, allDataLoaded, isExpanded }) {
     }
   }, [allDataLoaded, generateNewConversation]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      generateNewConversation();
-    }, 10000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isExpanded, generateNewConversation]);
-
   return (
     <Collapse in={isExpanded} timeout="auto" unmountOnExit>
       <Box 
@@ -130,7 +127,7 @@ function GossipDisplay({ users, events, allDataLoaded, isExpanded }) {
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onClick={generateNewConversation}
+        onClick={handleManualTrigger}
       >
         <Box sx={{ 
           display: 'flex', 

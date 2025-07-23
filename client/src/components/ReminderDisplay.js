@@ -2,18 +2,21 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Collapse from '@mui/material/Collapse';
+import useAutoRefreshTimer from '../hooks/useAutoRefreshTimer';
 
 function ReminderDisplay({ users, events, eventsLoaded, isExpanded }) {
   const [reminder, setReminder] = useState('');
-  const [isTyping, setIsTyping] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const generateNewReminder = useCallback(async () => {
     if (!eventsLoaded || !events.length) {
       setReminder('');
       return;
     }
-    setIsTyping(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Start fade out transition
+    setIsTransitioning(true);
+    await new Promise(resolve => setTimeout(resolve, 300)); // Wait for fade out
     
     const pendingEvents = events.filter(e => (e.remainingBalance || 0) > 0);
     const event = (pendingEvents.length > 0 ? pendingEvents : events)[Math.floor(Math.random() * (pendingEvents.length > 0 ? pendingEvents.length : events.length))];
@@ -87,8 +90,17 @@ function ReminderDisplay({ users, events, eventsLoaded, isExpanded }) {
     } else {
       setReminder(`💸 **${participantName}** still owes **${ownerName}** **$${amount.toLocaleString()}** for **${eventName}**.`);
     }
-    setIsTyping(false);
+    
+    // Wait a bit then fade in with new content
+    await new Promise(resolve => setTimeout(resolve, 100));
+    setIsTransitioning(false);
   }, [users, events, eventsLoaded]);
+
+  const { handleManualTrigger } = useAutoRefreshTimer(
+    generateNewReminder,
+    10000,
+    isExpanded
+  );
 
   const renderReminder = (reminder) => {
     const parts = reminder.split(/\*\*(.*?)\*\*/g);
@@ -105,16 +117,6 @@ function ReminderDisplay({ users, events, eventsLoaded, isExpanded }) {
     }
   }, [eventsLoaded, events, generateNewReminder]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      generateNewReminder();
-    }, 10000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isExpanded, generateNewReminder]);
-
   return (
     <Collapse in={isExpanded} timeout="auto" unmountOnExit>
       <Box sx={{
@@ -128,7 +130,7 @@ function ReminderDisplay({ users, events, eventsLoaded, isExpanded }) {
           transition: 'transform 0.1s ease'
         }
       }}
-      onClick={generateNewReminder}
+      onClick={handleManualTrigger}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography 
@@ -152,34 +154,23 @@ function ReminderDisplay({ users, events, eventsLoaded, isExpanded }) {
             fontSize: '0.97rem',
             letterSpacing: '0.01em',
             lineHeight: 1.25,
-            transition: 'background 0.2s',
+            transition: 'opacity 0.3s ease-in-out',
             border: '1px solid #ffe082',
+            opacity: isTransitioning ? 0.3 : 1,
           }}>
-            {isTyping ? (
-              <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', py: 0.5 }}>
-                <Box
-                  sx={{
-                    width: 24,
-                    height: 24,
-                    border: '3px solid #ffe082',
-                    borderTop: '3px solid #ffd54f',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    '@keyframes spin': {
-                      '0%': { transform: 'rotate(0deg)' },
-                      '100%': { transform: 'rotate(360deg)' }
-                    }
-                  }}
-                />
-              </Box>
-            ) : (
-              <Typography 
-                variant="body2" 
-                sx={{ fontSize: '0.97rem', fontWeight: 500, lineHeight: 1.25, width: '100%' }}
-              >
-                {renderReminder(reminder)}
-              </Typography>
-            )}
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontSize: '0.97rem', 
+                fontWeight: 500, 
+                lineHeight: 1.25, 
+                width: '100%',
+                transition: 'opacity 0.3s ease-in-out',
+                opacity: isTransitioning ? 0 : 1
+              }}
+            >
+              {renderReminder(reminder)}
+            </Typography>
           </Box>
         </Box>
       </Box>
