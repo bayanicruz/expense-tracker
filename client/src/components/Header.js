@@ -8,8 +8,10 @@ import Collapse from '@mui/material/Collapse';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import gossipConfig from '../config/gossip.json';
+import featureToggles from '../config/featureToggles.json';
 
 function Header() {
+  const enableGossip = featureToggles.enableGossip !== false;
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('😏');
   const [answer, setAnswer] = useState('');
@@ -175,14 +177,14 @@ function Header() {
   };
 
   return (
-    <AppBar position="sticky" sx={{ 
-      backgroundColor: isExpanded ? 'white' : '#1976d2', 
-      color: isExpanded ? 'black' : 'white' 
+    <AppBar position={enableGossip && isExpanded ? "sticky" : "static"} sx={{ 
+      backgroundColor: !enableGossip || !isExpanded ? '#1976d2' : 'white', 
+      color: !enableGossip || !isExpanded ? 'white' : 'black' 
     }}>
-      <Toolbar sx={{ justifyContent: 'center', py: isExpanded ? 2 : 1, minHeight: isExpanded ? 'auto' : '48px' }}>
+      <Toolbar sx={{ justifyContent: 'center', py: !enableGossip || !isExpanded ? 1 : 2, minHeight: !enableGossip || !isExpanded ? '48px' : 'auto' }}>
         <Box sx={{ maxWidth: '600px', width: '100%', position: 'relative' }}>
           {/* Collapsed State - Enhanced Title */}
-          {!isExpanded && (
+          {(!enableGossip || !isExpanded) && (
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'center', 
@@ -227,194 +229,197 @@ function Header() {
           )}
           
           {/* Collapsible Content */}
-          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-            <Box 
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1,
-                cursor: 'pointer',
-                userSelect: 'none',
-                '&:active': {
-                  transform: 'scale(0.98)',
-                  transition: 'transform 0.1s ease'
-                }
-              }}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-              onClick={generateNewConversation}
-            >
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1
-              }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontSize: '1.2rem',
-                    color: 'black',
-                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-                  }}
-                >
-                  {emoji}:
-                </Typography>
-                <Box sx={{
-                  backgroundColor: '#e0e0e0',
-                  color: 'black',
-                  borderRadius: '20px',
-                  padding: '8px 16px',
-                  maxWidth: '400px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  minHeight: '20px',
+          {enableGossip && (
+            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+              <Box 
+                sx={{
                   display: 'flex',
-                  alignItems: 'center'
+                  flexDirection: 'column',
+                  gap: 1,
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  '&:active': {
+                    transform: 'scale(0.98)',
+                    transition: 'transform 0.1s ease'
+                  }
+                }}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                onClick={generateNewConversation}
+              >
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1
                 }}>
-                  {isTyping ? (
-                    <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center', py: 0.5 }}>
-                      {[0, 1, 2].map((dot) => (
-                        <Box
-                          key={dot}
-                          sx={{
-                            width: '6px',
-                            height: '6px',
-                            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                            borderRadius: '50%',
-                            animation: 'typing 1.4s infinite',
-                            animationDelay: `${dot * 0.2}s`,
-                            '@keyframes typing': {
-                              '0%, 60%, 100%': {
-                                transform: 'translateY(0)',
-                                opacity: 0.4
-                              },
-                              '30%': {
-                                transform: 'translateY(-4px)',
-                                opacity: 1
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontSize: '1.2rem',
+                      color: 'black',
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                    }}
+                  >
+                    {emoji}:
+                  </Typography>
+                  <Box sx={{
+                    backgroundColor: '#e0e0e0',
+                    color: 'black',
+                    borderRadius: '20px',
+                    padding: '8px 16px',
+                    maxWidth: '400px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    minHeight: '20px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    {isTyping ? (
+                      <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center', py: 0.5 }}>
+                        {[0, 1, 2].map((dot) => (
+                          <Box
+                            key={dot}
+                            sx={{
+                              width: '6px',
+                              height: '6px',
+                              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                              borderRadius: '50%',
+                              animation: 'typing 1.4s infinite',
+                              animationDelay: `${dot * 0.2}s`,
+                              '@keyframes typing': {
+                                '0%, 60%, 100%': {
+                                  transform: 'translateY(0)',
+                                  opacity: 0.4
+                                },
+                                '30%': {
+                                  transform: 'translateY(-4px)',
+                                  opacity: 1
+                                }
                               }
-                            }
-                          }}
-                        />
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontSize: '0.85rem',
-                        fontWeight: 500,
-                        lineHeight: 1.3
-                      }}
-                    >
-                      {renderTitle(title)}
-                    </Typography>
-                  )}
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: '0.85rem',
+                          fontWeight: 500,
+                          lineHeight: 1.3
+                        }}
+                      >
+                        {renderTitle(title)}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+                
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'flex-end',
+                  alignItems: 'center', 
+                  gap: 1
+                }}>
+                  <Box sx={{
+                    backgroundColor: isTyping ? '#e0e0e0' : '#1976d2',
+                    color: isTyping ? 'black' : 'white',
+                    borderRadius: '20px',
+                    padding: '6px 12px',
+                    maxWidth: '200px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    minHeight: '20px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    {isTyping ? (
+                      <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center', py: 0.5 }}>
+                        {[0, 1, 2].map((dot) => (
+                          <Box
+                            key={dot}
+                            sx={{
+                              width: '5px',
+                              height: '5px',
+                              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                              borderRadius: '50%',
+                              animation: 'typing 1.4s infinite',
+                              animationDelay: `${dot * 0.2}s`,
+                              '@keyframes typing': {
+                                '0%, 60%, 100%': {
+                                  transform: 'translateY(0)',
+                                  opacity: 0.4
+                                },
+                                '30%': {
+                                  transform: 'translateY(-3px)',
+                                  opacity: 1
+                                }
+                              }
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          lineHeight: 1.3
+                        }}
+                      >
+                        {answer}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontSize: '1rem',
+                      color: 'black',
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                    }}
+                  >
+                    :{answerEmoji}
+                  </Typography>
                 </Box>
               </Box>
-              
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'flex-end',
-                alignItems: 'center', 
-                gap: 1
-              }}>
-                <Box sx={{
-                  backgroundColor: isTyping ? '#e0e0e0' : '#1976d2',
-                  color: isTyping ? 'black' : 'white',
-                  borderRadius: '20px',
-                  padding: '6px 12px',
-                  maxWidth: '200px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  minHeight: '20px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}>
-                  {isTyping ? (
-                    <Box sx={{ display: 'flex', gap: '3px', alignItems: 'center', py: 0.5 }}>
-                      {[0, 1, 2].map((dot) => (
-                        <Box
-                          key={dot}
-                          sx={{
-                            width: '5px',
-                            height: '5px',
-                            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                            borderRadius: '50%',
-                            animation: 'typing 1.4s infinite',
-                            animationDelay: `${dot * 0.2}s`,
-                            '@keyframes typing': {
-                              '0%, 60%, 100%': {
-                                transform: 'translateY(0)',
-                                opacity: 0.4
-                              },
-                              '30%': {
-                                transform: 'translateY(-3px)',
-                                opacity: 1
-                              }
-                            }
-                          }}
-                        />
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontSize: '0.75rem',
-                        fontWeight: 500,
-                        lineHeight: 1.3
-                      }}
-                    >
-                      {answer}
-                    </Typography>
-                  )}
-                </Box>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontSize: '1rem',
-                    color: 'black',
-                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-                  }}
-                >
-                  :{answerEmoji}
-                </Typography>
-              </Box>
-            </Box>
-          </Collapse>
-
+            </Collapse>
+          )}
         </Box>
       </Toolbar>
       
       {/* Hide/Show Conversation Button - Below header border */}
-      <Box sx={{ 
-        position: 'absolute',
-        top: 'calc(100% + 4px)',
-        left: '12px',
-        zIndex: 100,
-        backgroundColor: 'rgba(248, 248, 248, 0.8)',
-        backdropFilter: 'blur(6px)',
-        borderRadius: '6px',
-        padding: '1px 6px',
-        border: '1px solid rgba(0, 0, 0, 0.03)',
-        transition: 'all 0.2s ease'
-      }}>
-        <Typography
-          onClick={toggleExpanded}
-          variant="caption"
-          sx={{ 
-            color: 'rgba(0, 0, 0, 0.5)',
-            fontSize: '0.6rem',
-            cursor: 'pointer',
-            fontWeight: 400,
-            transition: 'color 0.2s ease',
-            '&:hover': {
-              color: 'rgba(0, 0, 0, 0.7)',
-            }
-          }}
-        >
-          {isExpanded ? '🤫 Go chismis-free' : '👂 Maki-chismis'}
-        </Typography>
-      </Box>
+      {enableGossip && (
+        <Box sx={{ 
+          position: 'absolute',
+          top: 'calc(100% + 4px)',
+          left: '12px',
+          zIndex: 100,
+          backgroundColor: 'rgba(248, 248, 248, 0.8)',
+          backdropFilter: 'blur(6px)',
+          borderRadius: '6px',
+          padding: '1px 6px',
+          border: '1px solid rgba(0, 0, 0, 0.03)',
+          transition: 'all 0.2s ease'
+        }}>
+          <Typography
+            onClick={toggleExpanded}
+            variant="caption"
+            sx={{ 
+              color: 'rgba(0, 0, 0, 0.5)',
+              fontSize: '0.6rem',
+              cursor: 'pointer',
+              fontWeight: 400,
+              transition: 'color 0.2s ease',
+              '&:hover': {
+                color: 'rgba(0, 0, 0, 0.7)',
+              }
+            }}
+          >
+            {isExpanded ? '🤫 Go chismis-free' : '👂 Maki-chismis'}
+          </Typography>
+        </Box>
+      )}
     </AppBar>
   );
 }

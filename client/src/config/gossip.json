@@ -1,4 +1,5 @@
 {
+  "enableGossip": false,
   "userGossip": [
     "Pssst, si **{name}** ang dami na ng gastos!",
     "Buti ka pa **{name}**, parang may pabrika ka ng pera!",
