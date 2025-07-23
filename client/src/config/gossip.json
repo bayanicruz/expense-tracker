@@ -1,5 +1,5 @@
 {
-  "gossip": [
+  "userGossip": [
     "Pssst, si **{name}** ang dami na ng gastos!",
     "Buti ka pa **{name}**, parang may pabrika ka ng pera!",
     "Si **{name}** hindi ba nauubusan ng sweldo?",
@@ -62,6 +62,38 @@
     "Si **{name}** parang may VIP card sa lahat ng store.",
     "Yung lifestyle ni **{name}**, parang may trust fund."
   ],
+  "eventGossip": [
+    "Uy, ganito pala ang buhay ng mga mayaman sa **{event}**!",
+  "Ayos, glamor lang sa **{event}**, budget sa loob?",
+  "Feeling VIP kayo sa **{event}**, pero sampung piso ang budget?",
+  "Nagpa-party kayo sa **{event}**, pero sa wallet mali-mali.",
+  "Akala namin si Mr./Ms. Extravaganza kayo sa **{event}**, eh tagal ng pila!",
+  "Enjoy kayo d'yan sa **{event}**, kami dito, bossing budget pa rin!",
+  "**{event}** spree? Bahala kayo, credit card niyo ang magpapadala.",
+  "Para kayong artista, laging may entourage ng gastos sa **{event}**.",
+  "Mamasyal kayo sa **{event}** pero anak-pawis pa rin sa sweldo.",
+  "Cinema trip ba 'to o malaking excuse lang para sa **{event}**?",
+  "Ang daming bestseller sa **{event}**, kayo na siguro ang bestseller ng gastos.",
+  "Mukhang marathon 'to ng kartel ng gastos sa **{event}**!",
+  "Happy hour sa **{event}**? Para kayong nag-happy ulan ng pera!",
+  "Ang ganda ng trip niyo sa **{event}**, parang hindi niyo kilala si budget.",
+  "Parang award-winning ang discount na hindi niyo sinayang sa **{event}**.",
+  "Swak sa catch-up sa **{event}**, swak din sa kabado ng wallet niyo.",
+  "Kumusta naman ang ekonomiya niyo pagkatapos ng **{event}**?",
+  "Laging nasa spotlight kayo sa **{event}**, pero ang tagal maubos ang pera.",
+  "Bili dito, bili doon sa **{event}**, mapapahiya na kayo sa cashier.",
+  "Sweldo, tapos **{event}**, tapos... forever broke na kayo.",
+  "Lakas maka-food trip sa **{event}**, lakas din maka-empty bank account niyo.",
+  "Para kayong viral hit—madaling lumabas sa **{event}**, mabilis din mag-expire ang pera niyo.",
+  "Di niyo ba iniinspect presyo sa **{event}**? Feeling tayo?",
+  "So much for ‘budget-friendly’ sa **{event}** plans niyo.",
+  "Ang lakas maka-“just one more” sa shopping list niyo sa **{event}**.",
+  "Parang adik kayo sa sale sa **{event}**, hindi gumagaling.",
+  "Sinasayang niyo ang pera sa **{event}**, nakakatuwa.",
+  "Mukhang “magastos” ang middle name niyo sa **{event}**!",
+  "Kung may award sa ‘wasteful’ sa **{event}**, panalo kayo!",
+  "Laging may dahilan kayo para gumastos sa **{event}**, pero walang dahilan para mag-ipon."
+  ],
   "snarkyEmojis": [
     "😏",
     "🙄",
@@ -70,7 +102,7 @@
     "😒",
     "🤑"
   ],
-  "answers": [
+  "userAnswers": [
     "Flex lang daw.",
     "Deserve niya daw.",
     "Bahala na raw.",
@@ -100,7 +132,41 @@
     "Victory dance daw!",
     "One time lang daw!",
     "Pasensya na daw.",
-    "Goals daw niya!"
+    "Goals daw niya!",
+    "Eh di wow"
+  ],
+  "eventAnswers": [
+    "Tama raw sila.",
+    "Aba, nga daw sila!",
+    "Seryoso raw sila?",
+    "Walang kwenta daw sila.",
+    "Char daw sila.",
+    "Keri raw nila.",
+    "Pabibo raw sila.",
+    "Booster daw sila.",
+    "Good vibes daw sila.",
+    "Sakit skills daw nila.",
+    "Lakas maka daw sila!",
+    "Chill daw sila.",
+    "Tulad daw nila.",
+    "Basta saya raw sila.",
+    "Walang pake daw sila.",
+    "Game pa daw sila!",
+    "Kapit lang daw sila.",
+    "Walang forever daw sila.",
+    "Kain daw sila.",
+    "Papaiyak daw sila!",
+    "Simsim raw nila.",
+    "Must try raw nila!",
+    "Effort daw nila!",
+    "Trip daw nila!",
+    "Basta gastos daw sila!",
+    "Kanya-kanya daw sila.",
+    "Todo effort daw nila.",
+    "Level up daw sila!",
+    "Solve na daw sila!",
+    "Pasensya na daw sila.",
+    "Eh di wow"
   ],
   "answerEmojis": [
     "💅",
