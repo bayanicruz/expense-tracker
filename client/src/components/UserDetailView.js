@@ -288,7 +288,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                 {/* Events Participated Accordion */}
                 {(() => {
                   const participatedEvents = expenseData.eventBreakdown
-                    .filter(event => !event.eventOwner || event.eventOwner._id !== userId)
+                    .filter(event => (!event.eventOwner || event.eventOwner._id !== userId) && event.userShare > 0)
                     .sort((a, b) => {
                       // Determine payment status for sorting
                       const getPaymentStatus = (event) => {
@@ -476,7 +476,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                                       Split: ${(event.splitPerPerson || 0).toFixed(2)}
                                     </Typography>
                                     {/* Show owner's payment if they are also a participant */}
-                                    {event.userShare && event.userShare > 0 && (
+                                    {event.userShare > 0 && (
                                       <Typography variant="body2" color="primary" sx={{ fontWeight: 'medium' }}>
                                         Share: ${(event.amountPaid || 0).toFixed(2)}
                                       </Typography>
