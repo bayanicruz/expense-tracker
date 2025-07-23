@@ -4,8 +4,9 @@ import ExpandableList from './ExpandableList';
 import CreateUserForm from './CreateUserForm';
 import UserDetailView from './UserDetailView';
 import EventDetailView from './EventDetailView';
+import useApiCall from '../hooks/useApiCall';
 
-const UsersList = forwardRef(({ isOpen, onToggle, onUserClick }, ref) => {
+const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }, ref) => {
   const [users, setUsers] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showUserDetail, setShowUserDetail] = useState(false);
@@ -13,6 +14,7 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick }, ref) => {
   const [showEventDetail, setShowEventDetail] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const { loading, apiCall } = useApiCall(onLoadingChange);
 
   useEffect(() => {
     if (isOpen) {
@@ -29,26 +31,28 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick }, ref) => {
   const API_URL = process.env.REACT_APP_API_URL || '';
 
   const fetchUsers = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/users`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    await apiCall(async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/users`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('Non-JSON response:', text);
+          throw new Error('Server returned non-JSON response');
+        }
+        
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setUsers([]); // Set empty array on error
       }
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response:', text);
-        throw new Error('Server returned non-JSON response');
-      }
-      
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setUsers([]); // Set empty array on error
-    }
+    });
   };
 
   const getUserText = (user) => {

@@ -20,6 +20,8 @@ import {
   Link
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
+import LoadingOverlay from './LoadingOverlay';
+import useApiCall from '../hooks/useApiCall';
 
 function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUser, onBreadcrumbClick }) {
   const [eventData, setEventData] = useState({
@@ -39,6 +41,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
   const [loading, setLoading] = useState(false);
   const [showAddParticipant, setShowAddParticipant] = useState(false);
   const [showAddExpenseItem, setShowAddExpenseItem] = useState(false);
+  const { loading: apiLoading, apiCall } = useApiCall();
 
   useEffect(() => {
     if (open && eventId) {
@@ -50,64 +53,68 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
   const API_URL = process.env.REACT_APP_API_URL || '';
 
   const fetchEventDetails = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/events/${eventId}`);
-      if (response.ok) {
-        const event = await response.json();
-        setEventData(event);
-        
-        // Handle different participant formats
-        if (event.participants && event.participants.length > 0) {
-          const firstParticipant = event.participants[0];
+    await apiCall(async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_URL}/api/events/${eventId}`);
+        if (response.ok) {
+          const event = await response.json();
+          setEventData(event);
           
-          if (typeof firstParticipant === 'object' && firstParticipant.user && firstParticipant.user.name) {
-            // New format: participants have populated user and amountPaid fields
-            const participantsWithPaymentStatus = event.participants.map(p => ({
-              ...p.user,
-              amountPaid: p.amountPaid || 0
-            }));
-            setParticipantDetails(participantsWithPaymentStatus);
-          } else if (typeof firstParticipant === 'object' && firstParticipant.name) {
-            // Old format: participants are populated user objects
-            const participants = event.participants.map(p => ({ ...p, amountPaid: 0 }));
-            setParticipantDetails(participants);
-          } else if (typeof firstParticipant === 'string') {
-            // Participants are just IDs, need to fetch details
-            const participantPromises = event.participants.map(async (participantId) => {
-              const userResponse = await fetch(`${API_URL}/api/users/${participantId}`);
-              const user = userResponse.ok ? await userResponse.json() : null;
-              return user ? { ...user, amountPaid: 0 } : null;
-            });
-            const participants = await Promise.all(participantPromises);
-            const filteredParticipants = participants.filter(p => p !== null);
-            setParticipantDetails(filteredParticipants);
+          // Handle different participant formats
+          if (event.participants && event.participants.length > 0) {
+            const firstParticipant = event.participants[0];
+            
+            if (typeof firstParticipant === 'object' && firstParticipant.user && firstParticipant.user.name) {
+              // New format: participants have populated user and amountPaid fields
+              const participantsWithPaymentStatus = event.participants.map(p => ({
+                ...p.user,
+                amountPaid: p.amountPaid || 0
+              }));
+              setParticipantDetails(participantsWithPaymentStatus);
+            } else if (typeof firstParticipant === 'object' && firstParticipant.name) {
+              // Old format: participants are populated user objects
+              const participants = event.participants.map(p => ({ ...p, amountPaid: 0 }));
+              setParticipantDetails(participants);
+            } else if (typeof firstParticipant === 'string') {
+              // Participants are just IDs, need to fetch details
+              const participantPromises = event.participants.map(async (participantId) => {
+                const userResponse = await fetch(`${API_URL}/api/users/${participantId}`);
+                const user = userResponse.ok ? await userResponse.json() : null;
+                return user ? { ...user, amountPaid: 0 } : null;
+              });
+              const participants = await Promise.all(participantPromises);
+              const filteredParticipants = participants.filter(p => p !== null);
+              setParticipantDetails(filteredParticipants);
+            } else {
+              // Data might be corrupted, skip for now
+              console.warn('Participant data appears corrupted:', event.participants);
+              setParticipantDetails([]);
+            }
           } else {
-            // Data might be corrupted, skip for now
-            console.warn('Participant data appears corrupted:', event.participants);
             setParticipantDetails([]);
           }
-        } else {
-          setParticipantDetails([]);
         }
+      } catch (error) {
+        console.error('Error fetching event details:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching event details:', error);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const fetchExpenseItems = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/expense-items?eventId=${eventId}`);
-      if (response.ok) {
-        const items = await response.json();
-        setExpenseItems(items);
+    await apiCall(async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/expense-items?eventId=${eventId}`);
+        if (response.ok) {
+          const items = await response.json();
+          setExpenseItems(items);
+        }
+      } catch (error) {
+        console.error('Error fetching expense items:', error);
       }
-    } catch (error) {
-      console.error('Error fetching expense items:', error);
-    }
+    });
   };
 
   const searchUsers = async (searchTerm) => {
@@ -140,32 +147,34 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
   };
 
   const addParticipant = async (user) => {
-    try {
-      const participantsForSave = [...participantDetails, { ...user, amountPaid: 0 }].map(p => ({
-        user: p._id,
-        amountPaid: p.amountPaid || 0
-      }));
-      
-      const response = await fetch(`${API_URL}/api/events/${eventId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          participants: participantsForSave
-        })
-      });
+    await apiCall(async () => {
+      try {
+        const participantsForSave = [...participantDetails, { ...user, amountPaid: 0 }].map(p => ({
+          user: p._id,
+          amountPaid: p.amountPaid || 0
+        }));
+        
+        const response = await fetch(`${API_URL}/api/events/${eventId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            participants: participantsForSave
+          })
+        });
 
-      if (response.ok) {
-        setParticipantDetails(prev => [...prev, { ...user, amountPaid: 0 }]);
-        setUserSearch('');
-        setAvailableUsers([]);
-        setShowAddParticipant(false);
-        if (onEventUpdated) onEventUpdated();
+        if (response.ok) {
+          setParticipantDetails(prev => [...prev, { ...user, amountPaid: 0 }]);
+          setUserSearch('');
+          setAvailableUsers([]);
+          setShowAddParticipant(false);
+          if (onEventUpdated) onEventUpdated();
+        }
+      } catch (error) {
+        console.error('Error adding participant:', error);
       }
-    } catch (error) {
-      console.error('Error adding participant:', error);
-    }
+    });
   };
 
   const removeParticipant = async (userId) => {
@@ -201,30 +210,32 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
   };
 
   const updatePaymentAmount = async (participantId, newAmount) => {
-    try {
-      const response = await fetch(`${API_URL}/api/events/${eventId}/participants/${participantId}/payment`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amountPaid: parseFloat(newAmount) || 0
-        })
-      });
+    await apiCall(async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/events/${eventId}/participants/${participantId}/payment`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amountPaid: parseFloat(newAmount) || 0
+          })
+        });
 
-      if (response.ok) {
-        setParticipantDetails(prev => 
-          prev.map(participant => 
-            participant._id === participantId 
-              ? { ...participant, amountPaid: parseFloat(newAmount) || 0 }
-              : participant
-          )
-        );
-        if (onEventUpdated) onEventUpdated();
+        if (response.ok) {
+          setParticipantDetails(prev => 
+            prev.map(participant => 
+              participant._id === participantId 
+                ? { ...participant, amountPaid: parseFloat(newAmount) || 0 }
+                : participant
+            )
+          );
+          if (onEventUpdated) onEventUpdated();
+        }
+      } catch (error) {
+        console.error('Error updating payment amount:', error);
       }
-    } catch (error) {
-      console.error('Error updating payment amount:', error);
-    }
+    });
   };
 
   const handleNewExpenseChange = (field, value) => {
@@ -239,29 +250,31 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
       return;
     }
 
-    try {
-      const response = await fetch(`${API_URL}/api/expense-items`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          eventId: eventId,
-          itemName: newExpenseItem.itemName,
-          amount: parseFloat(newExpenseItem.amount)
-        })
-      });
+    await apiCall(async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/expense-items`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            eventId: eventId,
+            itemName: newExpenseItem.itemName,
+            amount: parseFloat(newExpenseItem.amount)
+          })
+        });
 
-      if (response.ok) {
-        const createdItem = await response.json();
-        setExpenseItems(prev => [...prev, createdItem]);
-        setNewExpenseItem({ itemName: '', amount: '' });
-        setShowAddExpenseItem(false);
-        if (onEventUpdated) onEventUpdated();
+        if (response.ok) {
+          const createdItem = await response.json();
+          setExpenseItems(prev => [...prev, createdItem]);
+          setNewExpenseItem({ itemName: '', amount: '' });
+          setShowAddExpenseItem(false);
+          if (onEventUpdated) onEventUpdated();
+        }
+      } catch (error) {
+        console.error('Error adding expense item:', error);
       }
-    } catch (error) {
-      console.error('Error adding expense item:', error);
-    }
+    });
   };
 
   const removeExpenseItem = async (itemId) => {
@@ -370,7 +383,8 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
+      <LoadingOverlay loading={apiLoading}>
+        <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ flexGrow: 1 }}>
             {breadcrumbUser && (
@@ -709,7 +723,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
         <Button 
           onClick={deleteEvent}
           variant="text"
-          disabled={loading}
+          disabled={loading || apiLoading}
           size="small"
           sx={{ 
             color: 'text.disabled',
@@ -732,6 +746,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
           Close
         </Button>
       </DialogActions>
+      </LoadingOverlay>
     </Dialog>
   );
 }

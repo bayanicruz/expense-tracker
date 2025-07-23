@@ -20,6 +20,7 @@ import {
   AccordionDetails
 } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import LoadingOverlay from './LoadingOverlay';
 
 const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEventClick }, ref) => {
   const [userData, setUserData] = useState({
@@ -41,25 +42,36 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
 
   useEffect(() => {
     if (open && userId) {
-      fetchUserDetails();
-      fetchUserExpenses();
+      fetchAllData();
     }
   }, [open, userId]);
 
   useImperativeHandle(ref, () => ({
     refreshData: () => {
       if (userId) {
-        fetchUserDetails();
-        fetchUserExpenses();
+        fetchAllData();
       }
     }
   }));
 
   const API_URL = process.env.REACT_APP_API_URL || '';
 
-  const fetchUserDetails = async () => {
+  const fetchAllData = async () => {
     try {
       setLoading(true);
+      await Promise.all([
+        fetchUserDetails(),
+        fetchUserExpenses()
+      ]);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserDetails = async () => {
+    try {
       const response = await fetch(`${API_URL}/api/users/${userId}`);
       if (response.ok) {
         const user = await response.json();
@@ -68,8 +80,6 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
       }
     } catch (error) {
       console.error('Error fetching user details:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -174,18 +184,9 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
     return new Date(dateString).toLocaleDateString();
   };
 
-  if (loading) {
-    return (
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogContent sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress />
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <LoadingOverlay loading={loading}>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ flexGrow: 1 }}>
@@ -471,6 +472,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
           Close
         </Button>
       </DialogActions>
+      </LoadingOverlay>
     </Dialog>
   );
 });
