@@ -181,12 +181,48 @@ function Header() {
     }}>
       <Toolbar sx={{ justifyContent: 'center', py: isExpanded ? 2 : 1, minHeight: isExpanded ? 'auto' : '48px' }}>
         <Box sx={{ maxWidth: '600px', width: '100%', position: 'relative' }}>
-          {/* Collapsed State - Simple Title */}
+          {/* Collapsed State - Enhanced Title */}
           {!isExpanded && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
-                Expense Tracker
-              </Typography>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center',
+              position: 'relative'
+            }}>
+              {/* Main title with icon */}
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1.2,
+                px: 2,
+                py: 0.5,
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
+                borderRadius: '20px',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <Typography 
+                  sx={{ 
+                    fontSize: '1.3rem',
+                    filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
+                  }}
+                >
+                  💰
+                </Typography>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: 'white', 
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                    letterSpacing: '0.3px'
+                  }}
+                >
+                  Expense Tracker
+                </Typography>
+              </Box>
             </Box>
           )}
           
@@ -376,7 +412,7 @@ function Header() {
             }
           }}
         >
-          {isExpanded ? '🤫 Chismis-free' : '👂 Maki chismis'}
+          {isExpanded ? '🤫 Go chismis-free' : '👂 Maki-chismis'}
         </Typography>
       </Box>
     </AppBar>
