@@ -106,15 +106,17 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           top: 0, 
           zIndex: 1, 
           backgroundColor: 'background.paper',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1
+          borderBottom: '1px solid rgba(0,0,0,0.05)',
+          py: 2
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
-            👤 Add New Member
-          </Typography>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem', mb: 0.5 }}>
+              Add New Member
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+              Create a new member for expense tracking
+            </Typography>
+          </Box>
         </DialogTitle>
         
         {/* Scrollable Content */}
@@ -128,32 +130,32 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           }
         }}>
           <Stack spacing={3} sx={{ mt: 2, pb: 2 }}>
-            <Box sx={{ 
-              background: 'rgba(0,0,0,0.02)',
-              borderRadius: '12px',
-              p: 3,
-              border: '1px solid rgba(0,0,0,0.05)'
-            }}>
-              <TextField
-                label="Member Name"
-                fullWidth
-                value={userData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                error={!!errors.name}
-                helperText={errors.name}
-                required
-                variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    background: 'white',
-                    fontSize: '0.95rem'
-                  },
-                  '& .MuiInputLabel-root': {
-                    fontSize: '0.9rem'
+            <TextField
+              label="Member Name"
+              fullWidth
+              value={userData.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              error={!!errors.name}
+              helperText={errors.name}
+              required
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  fontSize: '0.9rem',
+                  '&.Mui-focused': {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'black'
+                    }
                   }
-                }}
-              />
-            </Box>
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '0.9rem'
+                },
+                '& .MuiFormHelperText-root': {
+                  fontSize: '0.75rem'
+                }
+              }}
+            />
 
             {errors.submit && (
               <Typography color="error" variant="body2" sx={{ fontSize: '0.85rem' }}>
@@ -171,40 +173,43 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           backgroundColor: 'background.paper',
           borderTop: '1px solid',
           borderColor: 'divider',
-          flexDirection: 'column', 
-          gap: 1, 
+          justifyContent: 'space-between', 
           p: 2 
         }}>
+          <Button 
+            onClick={handleClose}
+            variant="text"
+            size="small"
+            sx={{ 
+              color: 'text.disabled',
+              fontSize: '0.75rem',
+              textTransform: 'none',
+              '&:hover': {
+                color: 'text.secondary',
+                backgroundColor: 'transparent'
+              }
+            }}
+          >
+            Cancel
+          </Button>
           <Button 
             onClick={handleSubmit} 
             variant="contained"
             disabled={!userData.name || loading}
-            fullWidth
             size="large"
             sx={{ 
-              py: 1.5, 
-              background: '#4caf50',
+              px: 4,
+              backgroundColor: 'black',
               color: 'white',
-              fontSize: '0.95rem',
-              fontWeight: 600,
-              borderRadius: '10px',
-              '&:hover': { background: '#66bb6a' },
-              '&:disabled': { background: '#ccc' }
+              '&:hover': { 
+                backgroundColor: '#333333'
+              },
+              '&:disabled': { 
+                backgroundColor: '#ccc'
+              }
             }}
           >
-            👤 Add Member
-          </Button>
-          <Button 
-            onClick={handleClose}
-            fullWidth
-            size="large"
-            sx={{ 
-              py: 1.5,
-              fontSize: '0.9rem',
-              color: 'text.secondary'
-            }}
-          >
-            Cancel
+            Add Member
           </Button>
         </DialogActions>
       </LoadingOverlay>
