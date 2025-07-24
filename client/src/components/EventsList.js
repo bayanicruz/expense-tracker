@@ -5,7 +5,7 @@ import CreateEventForm from './CreateEventForm';
 import EventDetailView from './EventDetailView';
 import Avatar from './Avatar';
 import useApiCall from '../hooks/useApiCall';
-import { getEventAvatar } from '../utils/avatarUtils';
+import { getUserAvatar } from '../utils/avatarUtils';
 
 function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingChange }) {
   const [events, setEvents] = useState([]);
@@ -21,6 +21,29 @@ function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingCh
   }, [isOpen]);
 
   const API_URL = process.env.REACT_APP_API_URL || '';
+
+  const getEventDollarColor = (eventName) => {
+    const colors = [
+      { bg: '#e3f2fd', text: '#1976d2' }, // Blue
+      { bg: '#f3e5f5', text: '#7b1fa2' }, // Purple
+      { bg: '#e8f5e8', text: '#388e3c' }, // Green
+      { bg: '#fff3e0', text: '#f57c00' }, // Orange
+      { bg: '#ffebee', text: '#d32f2f' }, // Red
+      { bg: '#e0f2f1', text: '#00796b' }, // Teal
+      { bg: '#fce4ec', text: '#c2185b' }, // Pink
+      { bg: '#e8eaf6', text: '#3f51b5' }, // Indigo
+    ];
+    
+    // Generate hash from event name
+    let hash = 0;
+    for (let i = 0; i < eventName.length; i++) {
+      hash = eventName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Use hash to select color
+    const colorIndex = Math.abs(hash) % colors.length;
+    return colors[colorIndex];
+  };
 
   const fetchEvents = async () => {
     await apiCall(async () => {
@@ -67,17 +90,28 @@ function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingCh
     const owner = event.owner ? event.owner.name : 'Unknown';
     const remainingBalance = event.remainingBalance || 0;
     const isSettled = remainingBalance === 0 && event.totalAmount > 0;
-    const avatarProps = getEventAvatar(event);
+    const dollarColor = getEventDollarColor(title);
     
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-        <Avatar
-          initials={avatarProps.initials}
-          backgroundColor={avatarProps.backgroundColor}
-          color={avatarProps.color}
-          size={36}
-          fontSize={13}
-        />
+        <Box sx={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '50%',
+          backgroundColor: dollarColor.bg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          <Typography sx={{ 
+            fontSize: '1.1rem', 
+            fontWeight: 700,
+            color: dollarColor.text
+          }}>
+            $
+          </Typography>
+        </Box>
         <ListItemText 
           primary={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -99,23 +133,24 @@ function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingCh
             </Box>
           }
           secondary={
-            <Box component="span" sx={{ fontSize: '0.8rem' }}>
-              <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
-                Owner:
-              </Box>
-              {' '}
-              <Box component="span" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
-                {owner}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontSize: '0.8rem' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  by:
+                </Typography>
+                <Typography variant="body2" sx={{ 
+                  color: '#1976d2', 
+                  fontWeight: 600,
+                  fontSize: '0.75rem'
+                }}>
+                  {owner}
+                </Typography>
               </Box>
               {remainingBalance > 0 && (
                 <>
-                  {' • '}
+                  <Box component="span" sx={{ color: 'text.secondary' }}>•</Box>
                   <Box component="span" sx={{ color: 'error.main', fontWeight: 'medium' }}>
-                    ${remainingBalance.toFixed(2)}
-                  </Box>
-                  {' '}
-                  <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
-                    remaining
+                    ${remainingBalance.toFixed(2)} remaining
                   </Box>
                 </>
               )}
@@ -150,10 +185,17 @@ function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingCh
     }
   };
 
+  const calculateTotalSpend = () => {
+    return events.reduce((total, event) => {
+      return total + (event.totalAmount || 0);
+    }, 0);
+  };
+
   return (
     <>
       <ExpandableList
         title="Expense Events"
+        subtitle={events.length > 0 ? `Total spend: $${calculateTotalSpend().toFixed(2)}` : undefined}
         isOpen={isOpen}
         onToggle={onToggle}
         createText="+ Create Event"
