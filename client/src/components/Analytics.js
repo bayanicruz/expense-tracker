@@ -4,7 +4,6 @@ import {
   Typography,
   Grid
 } from '@mui/material';
-import { Assessment as AssessmentIcon } from '@mui/icons-material';
 
 // Import analytics components
 import StorageOverviewCard from './analytics/StorageOverviewCard';

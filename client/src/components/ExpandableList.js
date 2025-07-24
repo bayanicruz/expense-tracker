@@ -6,7 +6,6 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import Collapse from '@mui/material/Collapse';
-import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import Add from '@mui/icons-material/Add';
 
@@ -27,35 +26,57 @@ function ExpandableList({
         size="medium" 
         fullWidth
         sx={{ 
-          py: 1.2,
-          px: 2,
-          background: '#1976d2',
-          borderRadius: '6px',
-          boxShadow: 'none',
-          fontSize: '0.9rem',
-          fontWeight: 500,
+          py: 1.5,
+          px: 2.5,
+          background: 'white',
+          color: 'black',
+          borderRadius: '12px',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.08)',
+          fontSize: '1rem',
+          fontWeight: 600,
           textTransform: 'none',
+          letterSpacing: '0.3px',
           justifyContent: 'space-between',
-          minHeight: '42px',
-          border: '1px solid rgba(255,255,255,0.1)',
+          minHeight: '52px',
+          border: 'none',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%)',
+            pointerEvents: 'none'
+          },
           '&:hover': {
-            background: '#1565c0',
-            boxShadow: '0 1px 4px rgba(25, 118, 210, 0.25)',
+            background: 'white',
+            color: 'black',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.16), 0 8px 16px rgba(0,0,0,0.12)',
+            transform: 'translateY(-4px) scale(1.02)',
             '& .chevron': {
               opacity: 1,
+              transform: isOpen ? 'rotate(180deg) scale(1.1)' : 'rotate(0deg) scale(1.1)',
             }
+          },
+          '&:active': {
+            transform: 'translateY(-2px) scale(1.01)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.14), 0 6px 12px rgba(0,0,0,0.1)',
+            transition: 'all 0.1s cubic-bezier(0.4, 0, 0.2, 1)',
           },
           '& .MuiButton-endIcon': {
             marginLeft: 0,
-            minWidth: '20px',
+            minWidth: '24px',
             '& .chevron': {
-              fontSize: '1rem',
-              opacity: 0.7,
-              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              fontSize: '1.2rem',
+              opacity: 0.8,
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             }
           },
-          transition: 'all 0.2s ease-out',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
         onClick={onToggle}
         endIcon={<ExpandMore className="chevron" />}
@@ -64,45 +85,49 @@ function ExpandableList({
       </Button>
       <Collapse in={isOpen} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
-          <ListItem sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
-            <Button
-              variant="text"
-              fullWidth
-              startIcon={<Add />}
-              onClick={() => onItemClick && onItemClick('create')}
-              sx={{
-                py: 1.2,
-                px: 2.5,
-                borderRadius: 2,
-                color: 'text.secondary',
-                backgroundColor: '#f8f9fa',
-                textTransform: 'none',
-                fontWeight: '500',
-                fontSize: '0.85rem',
-                border: '1px solid #e9ecef',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                '&:hover': {
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #dee2e6',
-                  color: 'primary.main',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
-                  transform: 'translateY(-0.5px)',
-                },
-                '& .MuiSvgIcon-root': {
-                  fontSize: '1rem',
-                  color: '#6c757d',
-                  transition: 'all 0.2s ease-in-out',
-                },
-                '&:hover .MuiSvgIcon-root': {
-                  color: 'primary.main',
-                  transform: 'scale(1.1)',
-                },
-                transition: 'all 0.2s ease-in-out',
-              }}
-            >
-              {createText.replace(/^\+\s*/, '')}
-            </Button>
-          </ListItem>
+          {createText && (
+            <ListItem sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                startIcon={<Add />}
+                onClick={() => onItemClick && onItemClick('create')}
+                sx={{
+                  py: 1.3,
+                  px: 2.5,
+                  background: '#4caf50',
+                  color: 'white',
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  border: 'none',
+                  boxShadow: '0 6px 20px rgba(76, 175, 80, 0.4), 0 2px 6px rgba(76, 175, 80, 0.2)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&:hover': {
+                    background: '#66bb6a',
+                    boxShadow: '0 8px 25px rgba(76, 175, 80, 0.5), 0 4px 12px rgba(76, 175, 80, 0.3)',
+                    transform: 'translateY(-2px) scale(1.01)',
+                  },
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.1rem',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  },
+                  '&:hover .MuiSvgIcon-root': {
+                    transform: 'scale(1.2) rotate(90deg)',
+                  },
+                  '&:active': {
+                    transform: 'translateY(-1px) scale(1.005)',
+                    boxShadow: '0 6px 20px rgba(76, 175, 80, 0.4), 0 3px 8px rgba(76, 175, 80, 0.25)',
+                  },
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              >
+                {createText.replace(/^\+\s*/, '')}
+              </Button>
+            </ListItem>
+          )}
           {items.map((item) => (
             <ListItem key={item._id}>
               <ListItemButton 

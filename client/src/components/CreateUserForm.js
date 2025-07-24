@@ -7,7 +7,8 @@ import {
   TextField,
   Button,
   Stack,
-  Typography
+  Typography,
+  Box
 } from '@mui/material';
 import LoadingOverlay from './LoadingOverlay';
 import useApiCall from '../hooks/useApiCall';
@@ -70,7 +71,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           throw new Error(errorData.error || 'Failed to create user');
         }
 
-        const createdUser = await response.json();
+        await response.json();
 
         // Reset form
         setUserData({
@@ -105,10 +106,17 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           top: 0, 
           zIndex: 1, 
           backgroundColor: 'background.paper',
-          borderBottom: '1px solid',
-          borderColor: 'divider'
+          borderBottom: '1px solid rgba(0,0,0,0.05)',
+          py: 2
         }}>
-          Create New User
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem', mb: 0.5 }}>
+              Add New Member
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+              Create a new member for expense tracking
+            </Typography>
+          </Box>
         </DialogTitle>
         
         {/* Scrollable Content */}
@@ -121,20 +129,36 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
             borderRadius: '3px' 
           }
         }}>
-          <Stack spacing={3} sx={{ mt: 1, pb: 2 }}>
+          <Stack spacing={3} sx={{ mt: 2, pb: 2 }}>
             <TextField
-              label="Full Name"
+              label="Member Name"
               fullWidth
               value={userData.name}
               onChange={(e) => handleChange('name', e.target.value)}
               error={!!errors.name}
               helperText={errors.name}
               required
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  fontSize: '0.9rem',
+                  '&.Mui-focused': {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'black'
+                    }
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '0.9rem'
+                },
+                '& .MuiFormHelperText-root': {
+                  fontSize: '0.75rem'
+                }
+              }}
             />
-            
 
             {errors.submit && (
-              <Typography color="error" variant="body2">
+              <Typography color="error" variant="body2" sx={{ fontSize: '0.85rem' }}>
                 {errors.submit}
               </Typography>
             )}
@@ -149,27 +173,43 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           backgroundColor: 'background.paper',
           borderTop: '1px solid',
           borderColor: 'divider',
-          flexDirection: 'column', 
-          gap: 1, 
+          justifyContent: 'space-between', 
           p: 2 
         }}>
+          <Button 
+            onClick={handleClose}
+            variant="text"
+            size="small"
+            sx={{ 
+              color: 'text.disabled',
+              fontSize: '0.75rem',
+              textTransform: 'none',
+              '&:hover': {
+                color: 'text.secondary',
+                backgroundColor: 'transparent'
+              }
+            }}
+          >
+            Cancel
+          </Button>
           <Button 
             onClick={handleSubmit} 
             variant="contained"
             disabled={!userData.name || loading}
-            fullWidth
             size="large"
-            sx={{ py: 2 }}
+            sx={{ 
+              px: 4,
+              backgroundColor: 'black',
+              color: 'white',
+              '&:hover': { 
+                backgroundColor: '#333333'
+              },
+              '&:disabled': { 
+                backgroundColor: '#ccc'
+              }
+            }}
           >
-            Create User
-          </Button>
-          <Button 
-            onClick={handleClose}
-            fullWidth
-            size="large"
-            sx={{ py: 2 }}
-          >
-            Cancel
+            Add Member
           </Button>
         </DialogActions>
       </LoadingOverlay>

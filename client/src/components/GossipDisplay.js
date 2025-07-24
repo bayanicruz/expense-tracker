@@ -203,7 +203,7 @@ function GossipDisplay({ users, events, allDataLoaded, isExpanded }) {
           gap: 1
         }}>
           <Box sx={{
-            backgroundColor: isTyping ? '#e0e0e0' : '#1976d2',
+            backgroundColor: isTyping ? '#e0e0e0' : 'black',
             color: isTyping ? 'black' : 'white',
             borderRadius: '20px',
             padding: '6px 12px',
