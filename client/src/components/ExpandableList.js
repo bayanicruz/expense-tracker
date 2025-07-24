@@ -1,6 +1,7 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -11,6 +12,7 @@ import Add from '@mui/icons-material/Add';
 
 function ExpandableList({ 
   title, 
+  subtitle,
   isOpen, 
   onToggle, 
   createText, 
@@ -81,7 +83,22 @@ function ExpandableList({
         onClick={onToggle}
         endIcon={<ExpandMore className="chevron" />}
       >
-        {title}
+        <Box sx={{ textAlign: 'left', width: '100%' }}>
+          <Typography sx={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.2 }}>
+            {title}
+          </Typography>
+          {subtitle && (
+            <Typography sx={{ 
+              fontSize: '0.75rem', 
+              fontWeight: 400, 
+              opacity: 0.7,
+              lineHeight: 1.1,
+              mt: 0.25
+            }}>
+              {subtitle}
+            </Typography>
+          )}
+        </Box>
       </Button>
       <Collapse in={isOpen} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>

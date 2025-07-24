@@ -51,6 +51,37 @@ const createExpenseItem = async (req, res) => {
   }
 };
 
+// PATCH /api/expense-items/:id
+const updateExpenseItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+
+    // Basic validation
+    if (amount === undefined || amount === null) {
+      return res.status(400).json({ error: 'Amount is required' });
+    }
+
+    if (amount < 0) {
+      return res.status(400).json({ error: 'Amount must be non-negative' });
+    }
+
+    const expenseItem = await ExpenseItem.findByIdAndUpdate(
+      id,
+      { amount: parseFloat(amount) },
+      { new: true, runValidators: true }
+    );
+    
+    if (!expenseItem) {
+      return res.status(404).json({ error: 'Expense item not found' });
+    }
+
+    res.json(expenseItem);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // DELETE /api/expense-items/:id
 const deleteExpenseItem = async (req, res) => {
   try {
@@ -70,6 +101,7 @@ const deleteExpenseItem = async (req, res) => {
 
 router.get('/', getExpenseItems);
 router.post('/', createExpenseItem);
+router.patch('/:id', updateExpenseItem);
 router.delete('/:id', deleteExpenseItem);
 
 module.exports = router;

@@ -9,9 +9,6 @@ import {
   Box,
   Typography,
   IconButton,
-  List,
-  ListItem,
-  ListItemText,
   Stack,
   Autocomplete,
   CircularProgress,
@@ -21,6 +18,8 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon, Edit as EditIcon, Check as CheckIcon } from '@mui/icons-material';
 import LoadingOverlay from './LoadingOverlay';
+import Avatar from './Avatar';
+import { getEventAvatar, getUserAvatar } from '../utils/avatarUtils';
 import useApiCall from '../hooks/useApiCall';
 
 function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUser, onBreadcrumbClick }) {
@@ -44,6 +43,8 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
   const [loading, setLoading] = useState(false);
   const [showAddParticipant, setShowAddParticipant] = useState(false);
   const [showAddExpenseItem, setShowAddExpenseItem] = useState(false);
+  const [editingPayment, setEditingPayment] = useState(null); // { participantId, amount }
+  const [editingExpense, setEditingExpense] = useState(null); // { itemId, amount }
   const { loading: apiLoading, apiCall } = useApiCall();
 
   useEffect(() => {
@@ -122,26 +123,41 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
   };
 
   const searchUsers = async (searchTerm) => {
-    if (!searchTerm.trim()) {
-      setAvailableUsers([]);
-      return;
-    }
-
     setUserSearchLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/users`);
       if (response.ok) {
         const users = await response.json();
-        const filteredUsers = users.filter(user => 
-          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        ).filter(user => {
-          // Exclude already added participants - check both populated and ID formats
-          const currentParticipantIds = eventData.participants.map(p => 
-            typeof p === 'object' ? p._id : p
-          );
-          return !currentParticipantIds.includes(user._id);
-        });
-        setAvailableUsers(filteredUsers);
+        
+        // Get already added participant IDs
+        const currentParticipantIds = participantDetails.map(p => p._id);
+        
+        // Filter users that aren't already participants
+        const availableUsers = users.filter(user => 
+          !currentParticipantIds.includes(user._id)
+        );
+        
+        // If search term is provided, filter by name
+        const searchFilteredUsers = searchTerm.trim() 
+          ? availableUsers.filter(user => 
+              user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+          : availableUsers;
+        
+        // Create the options array with "Add all" as first option if there are remaining users
+        const options = [];
+        if (availableUsers.length > 0) {
+          options.push({
+            _id: 'ADD_ALL_REMAINING',
+            name: `Add all remaining users (${availableUsers.length})`,
+            isAddAllOption: true
+          });
+        }
+        
+        // Add the filtered users
+        options.push(...searchFilteredUsers);
+        
+        setAvailableUsers(options);
       }
     } catch (error) {
       console.error('Error searching users:', error);
@@ -177,6 +193,56 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
         }
       } catch (error) {
         console.error('Error adding participant:', error);
+      }
+    });
+  };
+
+  const addAllRemainingUsers = async () => {
+    await apiCall(async () => {
+      try {
+        // Get all users first
+        const response = await fetch(`${API_URL}/api/users`);
+        if (!response.ok) return;
+        
+        const allUsers = await response.json();
+        
+        // Filter out already added participants
+        const currentParticipantIds = participantDetails.map(p => p._id);
+        const remainingUsers = allUsers.filter(user => 
+          !currentParticipantIds.includes(user._id)
+        );
+        
+        if (remainingUsers.length === 0) {
+          setShowAddParticipant(false);
+          return;
+        }
+
+        // Add all remaining users
+        const newParticipants = [...participantDetails, ...remainingUsers.map(user => ({ ...user, amountPaid: 0 }))];
+        const participantsForSave = newParticipants.map(p => ({
+          user: p._id,
+          amountPaid: p.amountPaid || 0
+        }));
+        
+        const updateResponse = await fetch(`${API_URL}/api/events/${eventId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            participants: participantsForSave
+          })
+        });
+
+        if (updateResponse.ok) {
+          setParticipantDetails(newParticipants);
+          setUserSearch('');
+          setAvailableUsers([]);
+          setShowAddParticipant(false);
+          if (onEventUpdated) onEventUpdated();
+        }
+      } catch (error) {
+        console.error('Error adding all remaining users:', error);
       }
     });
   };
@@ -240,6 +306,72 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
         console.error('Error updating payment amount:', error);
       }
     });
+  };
+
+  const handlePaymentEdit = (participantId, currentAmount) => {
+    setEditingPayment({ participantId, amount: currentAmount || 0 });
+  };
+
+  const handlePaymentSave = async () => {
+    if (editingPayment) {
+      await updatePaymentAmount(editingPayment.participantId, editingPayment.amount);
+      setEditingPayment(null);
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    setEditingPayment(null);
+  };
+
+  const handleExpenseEdit = (itemId, currentAmount) => {
+    setEditingExpense({ itemId, amount: currentAmount || 0 });
+  };
+
+  const handleExpenseSave = async () => {
+    if (editingExpense) {
+      const success = await updateExpenseAmount(editingExpense.itemId, editingExpense.amount);
+      if (success !== false) {
+        setEditingExpense(null);
+      }
+    }
+  };
+
+  const handleExpenseCancel = () => {
+    setEditingExpense(null);
+  };
+
+  const updateExpenseAmount = async (itemId, newAmount) => {
+    let success = true;
+    await apiCall(async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/expense-items/${itemId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: parseFloat(newAmount) || 0
+          })
+        });
+
+        if (response.ok) {
+          setExpenseItems(prev => 
+            prev.map(item => 
+              item._id === itemId 
+                ? { ...item, amount: parseFloat(newAmount) || 0 }
+                : item
+            )
+          );
+          if (onEventUpdated) onEventUpdated();
+        } else {
+          success = false;
+        }
+      } catch (error) {
+        console.error('Error updating expense amount:', error);
+        success = false;
+      }
+    });
+    return success;
   };
 
   const handleNewExpenseChange = (field, value) => {
@@ -348,12 +480,39 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
     setLoading(false);
     setShowAddParticipant(false);
     setShowAddExpenseItem(false);
+    setEditingPayment(null);
+    setEditingExpense(null);
     onClose();
   };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
   };
+
+  const getEventDollarColor = (eventName) => {
+    const colors = [
+      { bg: '#e3f2fd', text: '#1976d2' }, // Blue
+      { bg: '#f3e5f5', text: '#7b1fa2' }, // Purple
+      { bg: '#e8f5e8', text: '#388e3c' }, // Green
+      { bg: '#fff3e0', text: '#f57c00' }, // Orange
+      { bg: '#ffebee', text: '#d32f2f' }, // Red
+      { bg: '#e0f2f1', text: '#00796b' }, // Teal
+      { bg: '#fce4ec', text: '#c2185b' }, // Pink
+      { bg: '#e8eaf6', text: '#3f51b5' }, // Indigo
+    ];
+    
+    // Generate hash from event name
+    let hash = 0;
+    for (let i = 0; i < eventName.length; i++) {
+      hash = eventName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Use hash to select color
+    const colorIndex = Math.abs(hash) % colors.length;
+    return colors[colorIndex];
+  };
+
+
 
   const calculateTotal = () => {
     return expenseItems.reduce((total, item) => total + item.amount, 0).toFixed(2);
@@ -373,9 +532,6 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
     return Math.max(0, total - totalAmountPaid).toFixed(2);
   };
 
-  const calculatePaidAmount = () => {
-    return participantDetails.reduce((sum, p) => sum + (p.amountPaid || 0), 0).toFixed(2);
-  };
 
   const handleTitleSave = async () => {
     // Only save if the title has actually changed
@@ -433,100 +589,136 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
         <DialogTitle sx={{ 
           position: 'sticky', 
           top: 0, 
-          zIndex: 1, 
+          zIndex: 10, 
           backgroundColor: 'background.paper',
           borderBottom: '1px solid',
           borderColor: 'divider'
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ flexGrow: 1 }}>
-              {breadcrumbUser && (
-                <Breadcrumbs sx={{ mb: 1 }}>
-                  <Link 
-                    component="button" 
-                    variant="body2" 
-                    onClick={() => onBreadcrumbClick ? onBreadcrumbClick() : onClose()}
-                    sx={{ 
-                      textDecoration: 'none',
-                      color: 'primary.main',
-                      '&:hover': { textDecoration: 'underline' }
-                    }}
-                  >
-                    {breadcrumbUser.name}
-                  </Link>
-                  <Typography variant="body2" color="text.primary">
-                    {eventData.title || 'Event Details'}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
+              {eventData.title && (
+                <Box sx={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  backgroundColor: getEventDollarColor(eventData.title).bg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Typography sx={{ 
+                    fontSize: '1.3rem', 
+                    fontWeight: 700,
+                    color: getEventDollarColor(eventData.title).text
+                  }}>
+                    $
                   </Typography>
-                </Breadcrumbs>
+                </Box>
               )}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                {isEditingTitle ? (
-                  <>
-                    <TextField
-                      value={eventData.title}
-                      onChange={(e) => setEventData(prev => ({ ...prev, title: e.target.value }))}
-                      variant="standard"
-                      size="small"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleTitleSave();
-                        } else if (e.key === 'Escape') {
-                          handleTitleCancelEdit();
-                        }
-                      }}
+              <Box sx={{ flexGrow: 1 }}>
+                {breadcrumbUser && (
+                  <Breadcrumbs sx={{ mb: 0.5 }}>
+                    <Link 
+                      component="button" 
+                      variant="body2" 
+                      onClick={() => onBreadcrumbClick ? onBreadcrumbClick() : onClose()}
                       sx={{ 
-                        '& .MuiInput-root': {
-                          fontSize: '1.5rem',
-                          fontWeight: 400
-                        }
+                        textDecoration: 'none',
+                        color: 'primary.main',
+                        fontSize: '0.8rem',
+                        '&:hover': { textDecoration: 'underline' }
                       }}
-                    />
-                    <IconButton size="small" onClick={handleTitleSave} color="primary">
-                      <CheckIcon />
-                    </IconButton>
-                    <IconButton size="small" onClick={handleTitleCancelEdit}>
-                      <CloseIcon />
-                    </IconButton>
-                  </>
-                ) : (
-                  <>
-                    <Typography variant="h5" component="div">
+                    >
+                      {breadcrumbUser.name}
+                    </Link>
+                    <Typography variant="body2" color="text.primary" sx={{ fontSize: '0.8rem' }}>
                       {eventData.title || 'Event Details'}
                     </Typography>
-                    <IconButton size="small" onClick={handleTitleStartEdit}>
-                      <EditIcon />
-                    </IconButton>
-                  </>
+                  </Breadcrumbs>
                 )}
-                {parseFloat(calculateRemainingBalance()) === 0 && expenseItems.length > 0 && (
-                  <Typography variant="body2" sx={{ 
-                    color: '#4caf50', 
-                    fontWeight: 'medium',
-                    backgroundColor: '#e8f5e8',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem'
-                  }}>
-                    Settled
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  {isEditingTitle ? (
+                    <>
+                      <TextField
+                        value={eventData.title}
+                        onChange={(e) => setEventData(prev => ({ ...prev, title: e.target.value }))}
+                        variant="standard"
+                        size="small"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleTitleSave();
+                          } else if (e.key === 'Escape') {
+                            handleTitleCancelEdit();
+                          }
+                        }}
+                        sx={{ 
+                          '& .MuiInput-root': {
+                            fontSize: '1.2rem',
+                            fontWeight: 500
+                          }
+                        }}
+                      />
+                      <IconButton size="small" onClick={handleTitleSave} color="primary">
+                        <CheckIcon />
+                      </IconButton>
+                      <IconButton size="small" onClick={handleTitleCancelEdit}>
+                        <CloseIcon />
+                      </IconButton>
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+                        {eventData.title || 'Event Details'}
+                      </Typography>
+                      <IconButton size="small" onClick={handleTitleStartEdit}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      {parseFloat(calculateRemainingBalance()) === 0 && expenseItems.length > 0 && (
+                        <Typography variant="caption" sx={{ 
+                          color: '#4caf50', 
+                          fontWeight: 600,
+                          backgroundColor: '#e8f5e8',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem'
+                        }}>
+                          Settled
+                        </Typography>
+                      )}
+                    </>
+                  )}
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                    {eventData.eventDate ? formatDate(eventData.eventDate) : ''}
                   </Typography>
-                )}
+                  {eventData.owner && (
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 0.5
+                    }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        by:
+                      </Typography>
+                      <Avatar
+                        {...getUserAvatar(eventData.owner)}
+                        size={20}
+                        fontSize={10}
+                      />
+                      <Typography variant="body2" sx={{ 
+                        color: '#1976d2', 
+                        fontWeight: 600,
+                        fontSize: '0.75rem'
+                      }}>
+                        {eventData.owner.name || 'Unknown'}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
               </Box>
-              <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                {eventData.eventDate ? formatDate(eventData.eventDate) : ''}
-              </Typography>
-              {eventData.owner && (
-                <Typography variant="body2" sx={{ 
-                  color: '#1976d2', 
-                  fontWeight: 'medium',
-                  backgroundColor: '#e3f2fd',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  display: 'inline-block'
-                }}>
-                  Owner: {eventData.owner.name || 'Unknown'}
-                </Typography>
-              )}
             </Box>
           </Box>
         </DialogTitle>
@@ -541,57 +733,101 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
             borderRadius: '3px' 
           }
         }}>
-        <Stack spacing={3} sx={{ mt: 1 }}>
+        <Stack spacing={1.5} sx={{ mt: 0.5 }}>
 
           {/* Financial Summary */}
           {expenseItems.length > 0 && (
             <Box sx={{ 
               p: 2, 
-              backgroundColor: '#f5f5f5', 
-              borderRadius: 1, 
-              display: 'flex', 
-              justifyContent: 'space-between',
-              alignItems: 'center'
+              backgroundColor: parseFloat(calculateRemainingBalance()) > 0 ? '#ffebee' : '#e8f5e8', 
+              borderRadius: 2, 
+              border: `1px solid ${parseFloat(calculateRemainingBalance()) > 0 ? '#ffcdd2' : '#c8e6c8'}`
             }}>
-              <Box>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
-                  Total
+              {/* Main Highlight - Remaining Amount */}
+              <Box sx={{ textAlign: 'center', mb: 2 }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5, fontSize: '0.75rem' }}>
+                  {parseFloat(calculateRemainingBalance()) > 0 ? 'AMOUNT REMAINING' : 'FULLY PAID'}
                 </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                  ${calculateTotal()}
+                <Typography variant="h4" sx={{ 
+                  fontWeight: 'bold',
+                  color: parseFloat(calculateRemainingBalance()) > 0 ? '#d32f2f' : '#2e7d32',
+                  mb: 1
+                }}>
+                  ${calculateRemainingBalance()}
                 </Typography>
               </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="body1" sx={{ 
-                  color: parseFloat(calculateRemainingBalance()) > 0 ? '#f44336' : '#4caf50' 
-                }}>
-                  ${calculateRemainingBalance()} remaining
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  ${calculateSplitPerPerson()} per {participantDetails.length} participant{participantDetails.length !== 1 ? 's' : ''}
-                </Typography>
+              
+              {/* Secondary Info - Total and Split */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                pt: 1.5,
+                borderTop: `1px solid ${parseFloat(calculateRemainingBalance()) > 0 ? '#ffcdd2' : '#c8e6c8'}`
+              }}>
+                <Box sx={{ textAlign: 'center', flex: 1 }}>
+                  <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
+                    TOTAL
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                    ${calculateTotal()}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center', flex: 1 }}>
+                  <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
+                    PER PERSON
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                    ${calculateSplitPerPerson()}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem' }}>
+                    ({participantDetails.length} participant{participantDetails.length !== 1 ? 's' : ''})
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           )}
 
           {/* Participants Section */}
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">
-                Participants
+          <Box sx={{ 
+            background: 'white',
+            borderRadius: '12px',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              px: 1.5,
+              py: 1,
+              background: 'rgba(0,0,0,0.02)',
+              borderBottom: '1px solid rgba(0,0,0,0.05)'
+            }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem', color: 'text.primary' }}>
+                Participants ({participantDetails.length})
               </Typography>
               <Button
                 startIcon={showAddParticipant ? <CloseIcon /> : <AddIcon />}
                 variant="outlined"
                 size="small"
                 onClick={() => {
-                  setShowAddParticipant(!showAddParticipant);
                   if (!showAddParticipant) {
+                    setShowAddParticipant(true);
+                    setUserSearch('');
+                    searchUsers(''); // Load initial options with "Add all" option
+                  } else {
+                    setShowAddParticipant(false);
                     setUserSearch('');
                     setAvailableUsers([]);
                   }
                 }}
-                sx={{ textTransform: 'none' }}
+                sx={{ 
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  minHeight: '28px'
+                }}
               >
                 {showAddParticipant ? 'Cancel' : 'Add'}
               </Button>
@@ -599,130 +835,294 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
 
             {/* Current Participants */}
             {participantDetails.length > 0 ? (
-              <List sx={{ p: 0 }}>
-                {participantDetails.map((participant) => (
-                  <ListItem key={participant._id} sx={{ px: 0, py: 1 }}>
-                    <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body1">
+              <Stack spacing={0}>
+                {participantDetails.map((participant, index) => (
+                  <Box key={participant._id}>
+                    <Box sx={{ 
+                      px: 1.5,
+                      py: 1,
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto',
+                      alignItems: 'center',
+                      gap: 1,
+                      minHeight: '48px'
+                    }}>
+                      {/* Avatar and Name */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        gap: 1,
+                        minWidth: 0
+                      }}>
+                        <Avatar
+                          {...getUserAvatar(participant)}
+                          size={32}
+                          fontSize={12}
+                        />
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 600, 
+                          fontSize: '0.9rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
                           {participant.name || 'Unknown'}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => {
-                            const splitAmount = calculateSplitPerPerson();
-                            updatePaymentAmount(participant._id, splitAmount);
-                          }}
-                          sx={{ 
-                            textTransform: 'none',
-                            minWidth: '60px',
-                            fontSize: '0.75rem'
-                          }}
-                        >
-                          Pay
-                        </Button>
-                        <TextField
-                          label="Amount Paid"
-                          type="number"
-                          size="small"
-                          value={participant.amountPaid || 0}
-                          onChange={(e) => updatePaymentAmount(participant._id, e.target.value)}
-                          inputProps={{ min: 0, step: 0.01 }}
-                          sx={{ 
-                            width: '120px',
-                            '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
-                              display: 'none',
-                            },
-                            '& input[type=number]': {
-                              MozAppearance: 'textfield',
-                            },
-                          }}
-                          InputProps={{
-                            endAdornment: (participant.amountPaid || 0) > 0 && (
-                              <IconButton
-                                size="small"
-                                onClick={() => updatePaymentAmount(participant._id, 0)}
-                                sx={{ p: 0.5 }}
-                              >
-                                <CloseIcon fontSize="small" />
-                              </IconButton>
-                            ),
-                          }}
-                        />
+
+                      {/* Action Buttons */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 0.3,
+                        flexShrink: 0
+                      }}>
+                        {editingPayment && editingPayment.participantId === participant._id ? (
+                          <>
+                            <TextField
+                              type="number"
+                              size="small"
+                              value={editingPayment.amount}
+                              onChange={(e) => setEditingPayment(prev => ({ ...prev, amount: e.target.value }))}
+                              inputProps={{ min: 0, step: 0.01 }}
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handlePaymentSave();
+                                } else if (e.key === 'Escape') {
+                                  handlePaymentCancel();
+                                }
+                              }}
+                              sx={{ 
+                                width: '60px',
+                                '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                                  display: 'none',
+                                },
+                                '& input[type=number]': {
+                                  MozAppearance: 'textfield',
+                                },
+                                '& .MuiOutlinedInput-root': {
+                                  fontSize: '0.75rem',
+                                  height: '32px'
+                                },
+                                '& input': {
+                                  textAlign: 'center',
+                                  px: 0.5
+                                }
+                              }}
+                            />
+                            <IconButton 
+                              onClick={handlePaymentSave}
+                              color="primary"
+                              size="small"
+                              sx={{ 
+                                width: '32px',
+                                height: '32px',
+                                border: '1px solid rgba(25, 118, 210, 0.5)',
+                                borderRadius: '4px'
+                              }}
+                            >
+                              <CheckIcon sx={{ fontSize: '16px' }} />
+                            </IconButton>
+                            <IconButton 
+                              onClick={handlePaymentCancel}
+                              size="small"
+                              sx={{ 
+                                width: '32px',
+                                height: '32px',
+                                border: '1px solid rgba(0,0,0,0.23)',
+                                borderRadius: '4px'
+                              }}
+                            >
+                              <CloseIcon sx={{ fontSize: '16px' }} />
+                            </IconButton>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                const splitAmount = calculateSplitPerPerson();
+                                updatePaymentAmount(participant._id, splitAmount);
+                              }}
+                              sx={{ 
+                                textTransform: 'none',
+                                minWidth: '32px',
+                                width: '32px',
+                                height: '32px',
+                                fontSize: '0.6rem',
+                                p: 0,
+                                fontWeight: 600
+                              }}
+                            >
+                              Pay
+                            </Button>
+                            <Box
+                              onClick={() => handlePaymentEdit(participant._id, participant.amountPaid)}
+                              sx={{
+                                width: '60px',
+                                height: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid rgba(0,0,0,0.23)',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                                fontWeight: 500,
+                                '&:hover': {
+                                  borderColor: 'rgba(0,0,0,0.87)',
+                                  backgroundColor: 'rgba(0,0,0,0.04)'
+                                }
+                              }}
+                            >
+                              ${(participant.amountPaid || 0).toFixed(0)}
+                            </Box>
+                          </>
+                        )}
+                        
                         <IconButton 
                           onClick={() => removeParticipant(participant._id)}
                           color="error"
                           size="small"
+                          sx={{ 
+                            width: '32px',
+                            height: '32px',
+                            border: '1px solid rgba(211, 47, 47, 0.5)',
+                            borderRadius: '4px'
+                          }}
                         >
-                          <DeleteIcon />
+                          <DeleteIcon sx={{ fontSize: '16px' }} />
                         </IconButton>
                       </Box>
                     </Box>
-                  </ListItem>
+                    {index < participantDetails.length - 1 && (
+                      <Divider sx={{ mx: 1.5 }} />
+                    )}
+                  </Box>
                 ))}
-              </List>
+              </Stack>
             ) : (
-              <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
-                No participants added yet
-              </Typography>
+              <Box sx={{ p: 2, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                  No participants added yet
+                </Typography>
+              </Box>
             )}
 
             {/* Add Participant (conditionally shown) */}
             {showAddParticipant && (
-              <Box sx={{ mt: 2 }}>
-                <Autocomplete
-                  freeSolo
-                  options={availableUsers}
-                  getOptionLabel={(option) => 
-                    typeof option === 'string' ? option : `${option.name || 'Unknown'}`
-                  }
-                  inputValue={userSearch}
-                  onInputChange={(event, newInputValue) => {
-                    setUserSearch(newInputValue);
-                    searchUsers(newInputValue);
-                  }}
-                  onChange={(event, value) => {
-                    if (value && typeof value === 'object') {
-                      addParticipant(value);
+              <Box sx={{ px: 1.5, py: 1, display: 'flex', gap: 1, alignItems: 'center', minHeight: '48px' }}>
+                <Box sx={{ flexGrow: 1 }}>
+                  <Autocomplete
+                    freeSolo
+                    options={availableUsers}
+                    getOptionLabel={(option) => 
+                      typeof option === 'string' ? option : `${option.name || 'Unknown'}`
                     }
-                  }}
-                  loading={userSearchLoading}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Search participants..."
-                      size="small"
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
+                    inputValue={userSearch}
+                    onInputChange={(event, newInputValue) => {
+                      setUserSearch(newInputValue);
+                      searchUsers(newInputValue);
+                    }}
+                    onChange={(event, value) => {
+                      if (value && typeof value === 'object') {
+                        if (value.isAddAllOption) {
+                          addAllRemainingUsers();
+                        } else {
+                          addParticipant(value);
+                        }
+                      }
+                    }}
+                    loading={userSearchLoading}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Search participants..."
+                        size="small"
+                        fullWidth
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': {
+                            fontSize: '0.9rem',
+                            height: '32px'
+                          }
+                        }}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {userSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                    renderOption={(props, option) => (
+                      <Box component="li" {...props} sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        backgroundColor: option.isAddAllOption ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+                        fontWeight: option.isAddAllOption ? 600 : 400,
+                        borderBottom: option.isAddAllOption ? '1px solid rgba(25, 118, 210, 0.2)' : 'none',
+                        mb: option.isAddAllOption ? 0.5 : 0
+                      }}>
+                        {option.isAddAllOption ? (
                           <>
-                            {userSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                            {params.InputProps.endAdornment}
+                            <Box sx={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: '#1976d2',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <AddIcon sx={{ fontSize: '14px', color: 'white' }} />
+                            </Box>
+                            <Typography variant="body2" sx={{ color: '#1976d2', fontWeight: 600 }}>
+                              {option.name}
+                            </Typography>
                           </>
-                        ),
-                      }}
-                    />
-                  )}
-                  renderOption={(props, option) => (
-                    <Box component="li" {...props}>
-                      <Typography variant="body1">{option.name || 'Unknown'}</Typography>
-                    </Box>
-                  )}
-                />
+                        ) : (
+                          <>
+                            <Avatar
+                              {...getUserAvatar(option)}
+                              size={24}
+                              fontSize={10}
+                            />
+                            <Typography variant="body2">{option.name || 'Unknown'}</Typography>
+                          </>
+                        )}
+                      </Box>
+                    )}
+                  />
+                </Box>
               </Box>
             )}
           </Box>
 
-          <Divider />
-
           {/* Expense Items Section */}
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">
-                Expense Items
+          <Box sx={{ 
+            background: 'white',
+            borderRadius: '12px',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              px: 1.5,
+              py: 1,
+              background: 'rgba(0,0,0,0.02)',
+              borderBottom: '1px solid rgba(0,0,0,0.05)'
+            }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem', color: 'text.primary' }}>
+                Expense Items ({expenseItems.length})
               </Typography>
               <Button
                 startIcon={showAddExpenseItem ? <CloseIcon /> : <AddIcon />}
@@ -734,7 +1134,11 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
                     setNewExpenseItem({ itemName: '', amount: '' });
                   }
                 }}
-                sx={{ textTransform: 'none' }}
+                sx={{ 
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  minHeight: '28px'
+                }}
               >
                 {showAddExpenseItem ? 'Cancel' : 'Add'}
               </Button>
@@ -742,75 +1146,202 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
 
             {/* Current Expense Items */}
             {expenseItems.length > 0 ? (
-              <List sx={{ p: 0 }}>
-                {expenseItems.map((item) => (
-                  <ListItem key={item._id} sx={{ px: 0, py: 1 }}>
-                    <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <ListItemText 
-                        primary={item.itemName}
-                        secondary={`$${item.amount.toFixed(2)}`}
-                      />
+              <Stack spacing={0}>
+                {expenseItems.map((item, index) => (
+                  <Box key={item._id}>
+                    <Box sx={{ 
+                      px: 1.5,
+                      py: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      minHeight: '48px'
+                    }}>
+                      {/* Item Name */}
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.9rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flexGrow: 1,
+                        minWidth: 0
+                      }}>
+                        {item.itemName}
+                      </Typography>
+
+                      {/* Amount Display */}
+                      {editingExpense && editingExpense.itemId === item._id ? (
+                        <>
+                          <TextField
+                            type="number"
+                            size="small"
+                            value={editingExpense.amount}
+                            onChange={(e) => setEditingExpense(prev => ({ ...prev, amount: e.target.value }))}
+                            inputProps={{ min: 0, step: 0.01 }}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleExpenseSave();
+                              } else if (e.key === 'Escape') {
+                                handleExpenseCancel();
+                              }
+                            }}
+                            sx={{ 
+                              width: '60px',
+                              '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                                display: 'none',
+                              },
+                              '& input[type=number]': {
+                                MozAppearance: 'textfield',
+                              },
+                              '& .MuiOutlinedInput-root': {
+                                fontSize: '0.75rem',
+                                height: '32px'
+                              },
+                              '& input': {
+                                textAlign: 'center',
+                                px: 0.5
+                              }
+                            }}
+                          />
+                          <IconButton 
+                            onClick={handleExpenseSave}
+                            color="primary"
+                            size="small"
+                            sx={{ 
+                              width: '32px',
+                              height: '32px',
+                              border: '1px solid rgba(25, 118, 210, 0.5)',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            <CheckIcon sx={{ fontSize: '16px' }} />
+                          </IconButton>
+                          <IconButton 
+                            onClick={handleExpenseCancel}
+                            size="small"
+                            sx={{ 
+                              width: '32px',
+                              height: '32px',
+                              border: '1px solid rgba(0,0,0,0.23)',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            <CloseIcon sx={{ fontSize: '16px' }} />
+                          </IconButton>
+                        </>
+                      ) : (
+                        <Box
+                          onClick={() => handleExpenseEdit(item._id, item.amount)}
+                          sx={{
+                            width: '60px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid rgba(0,0,0,0.23)',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            '&:hover': {
+                              borderColor: 'rgba(0,0,0,0.87)',
+                              backgroundColor: 'rgba(0,0,0,0.04)'
+                            }
+                          }}
+                        >
+                          ${item.amount.toFixed(0)}
+                        </Box>
+                      )}
+                      
+                      {/* Delete Button */}
                       <IconButton 
                         onClick={() => removeExpenseItem(item._id)}
                         color="error"
                         size="small"
+                        sx={{ 
+                          width: '32px',
+                          height: '32px',
+                          border: '1px solid rgba(211, 47, 47, 0.5)',
+                          borderRadius: '4px',
+                          flexShrink: 0
+                        }}
                       >
-                        <DeleteIcon />
+                        <DeleteIcon sx={{ fontSize: '16px' }} />
                       </IconButton>
                     </Box>
-                  </ListItem>
+                    {index < expenseItems.length - 1 && (
+                      <Divider sx={{ mx: 1.5 }} />
+                    )}
+                  </Box>
                 ))}
-              </List>
+              </Stack>
             ) : (
-              <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
-                No expense items added yet
-              </Typography>
+              <Box sx={{ p: 2, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                  No expense items added yet
+                </Typography>
+              </Box>
             )}
 
             {/* Add New Expense Item (conditionally shown) */}
             {showAddExpenseItem && (
-              <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Box sx={{ px: 1.5, py: 1, display: 'flex', gap: 1, alignItems: 'center', minHeight: '48px' }}>
+                <Box sx={{ flexGrow: 1 }}>
+                  <TextField
+                    placeholder="Item name..."
+                    value={newExpenseItem.itemName}
+                    onChange={(e) => handleNewExpenseChange('itemName', e.target.value)}
+                    size="small"
+                    variant="outlined"
+                    fullWidth
+                    sx={{ 
+                      '& .MuiOutlinedInput-root': {
+                        fontSize: '0.9rem',
+                        height: '32px'
+                      }
+                    }}
+                  />
+                </Box>
                 <TextField
-                  label="Item Name"
-                  value={newExpenseItem.itemName}
-                  onChange={(e) => handleNewExpenseChange('itemName', e.target.value)}
-                  size="small"
-                  sx={{ flexGrow: 1 }}
-                />
-                <TextField
-                  label="Amount"
+                  placeholder="0"
                   type="number"
                   value={newExpenseItem.amount}
                   onChange={(e) => handleNewExpenseChange('amount', e.target.value)}
                   size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
                   sx={{ 
-                    width: '120px',
+                    width: '60px',
                     '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
                       display: 'none',
                     },
                     '& input[type=number]': {
                       MozAppearance: 'textfield',
                     },
-                  }}
-                  inputProps={{ min: 0, step: 0.01 }}
-                  InputProps={{
-                    endAdornment: newExpenseItem.amount && parseFloat(newExpenseItem.amount) > 0 && (
-                      <IconButton
-                        size="small"
-                        onClick={() => handleNewExpenseChange('amount', '')}
-                        sx={{ p: 0.5 }}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    ),
+                    '& .MuiOutlinedInput-root': {
+                      fontSize: '0.75rem',
+                      height: '32px'
+                    },
+                    '& input': {
+                      textAlign: 'center',
+                      px: 0.5
+                    }
                   }}
                 />
                 <IconButton 
                   onClick={addExpenseItem}
                   color="primary"
                   disabled={!newExpenseItem.itemName.trim() || !newExpenseItem.amount}
+                  size="small"
+                  sx={{ 
+                    width: '32px',
+                    height: '32px',
+                    border: '1px solid rgba(25, 118, 210, 0.5)',
+                    borderRadius: '4px'
+                  }}
                 >
-                  <AddIcon />
+                  <AddIcon sx={{ fontSize: '16px' }} />
                 </IconButton>
               </Box>
             )}
