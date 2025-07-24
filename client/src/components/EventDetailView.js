@@ -340,6 +340,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
     setEditingExpense(null);
   };
 
+
   const updateExpenseAmount = async (itemId, newAmount) => {
     let success = true;
     await apiCall(async () => {

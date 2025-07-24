@@ -139,17 +139,17 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
               helperText={errors.name}
               required
               variant="outlined"
+              size="small"
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  fontSize: '0.9rem',
-                  '&.Mui-focused': {
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'black'
-                    }
-                  }
+                  fontSize: '0.85rem',
+                  height: '32px'
                 },
                 '& .MuiInputLabel-root': {
-                  fontSize: '0.9rem'
+                  fontSize: '0.8rem'
+                },
+                '& .MuiInputLabel-shrink': {
+                  fontSize: '0.75rem'
                 },
                 '& .MuiFormHelperText-root': {
                   fontSize: '0.75rem'
