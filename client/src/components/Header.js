@@ -4,7 +4,7 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import GossipDisplay from './GossipDisplay';
-import ReminderDisplay from './ReminderDisplay';
+import InsightsDisplay from './InsightsDisplay';
 import ExpandCollapseButton from './ExpandCollapseButton';
 import useFeatureToggles from '../hooks/useFeatureToggles';
 import useDataFetching from '../hooks/useDataFetching';
@@ -82,7 +82,7 @@ function Header() {
             />
           )}
           {enableReminders && (
-            <ReminderDisplay 
+            <InsightsDisplay 
               users={users}
               events={events}
               eventsLoaded={eventsLoaded}

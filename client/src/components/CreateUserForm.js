@@ -70,7 +70,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           throw new Error(errorData.error || 'Failed to create user');
         }
 
-        const createdUser = await response.json();
+        await response.json();
 
         // Reset form
         setUserData({
