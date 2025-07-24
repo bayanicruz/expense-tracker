@@ -7,7 +7,8 @@ import {
   TextField,
   Button,
   Stack,
-  Typography
+  Typography,
+  Box
 } from '@mui/material';
 import LoadingOverlay from './LoadingOverlay';
 import useApiCall from '../hooks/useApiCall';
@@ -106,9 +107,14 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           zIndex: 1, 
           backgroundColor: 'background.paper',
           borderBottom: '1px solid',
-          borderColor: 'divider'
+          borderColor: 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
         }}>
-          Add New Member
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+            👤 Add New Member
+          </Typography>
         </DialogTitle>
         
         {/* Scrollable Content */}
@@ -121,20 +127,36 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
             borderRadius: '3px' 
           }
         }}>
-          <Stack spacing={3} sx={{ mt: 1, pb: 2 }}>
-            <TextField
-              label="Full Name"
-              fullWidth
-              value={userData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              error={!!errors.name}
-              helperText={errors.name}
-              required
-            />
-            
+          <Stack spacing={3} sx={{ mt: 2, pb: 2 }}>
+            <Box sx={{ 
+              background: 'rgba(0,0,0,0.02)',
+              borderRadius: '12px',
+              p: 3,
+              border: '1px solid rgba(0,0,0,0.05)'
+            }}>
+              <TextField
+                label="Member Name"
+                fullWidth
+                value={userData.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                error={!!errors.name}
+                helperText={errors.name}
+                required
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    background: 'white',
+                    fontSize: '0.95rem'
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.9rem'
+                  }
+                }}
+              />
+            </Box>
 
             {errors.submit && (
-              <Typography color="error" variant="body2">
+              <Typography color="error" variant="body2" sx={{ fontSize: '0.85rem' }}>
                 {errors.submit}
               </Typography>
             )}
@@ -159,15 +181,28 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
             disabled={!userData.name || loading}
             fullWidth
             size="large"
-            sx={{ py: 2, backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
+            sx={{ 
+              py: 1.5, 
+              background: '#4caf50',
+              color: 'white',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              borderRadius: '10px',
+              '&:hover': { background: '#66bb6a' },
+              '&:disabled': { background: '#ccc' }
+            }}
           >
-            Add Member
+            👤 Add Member
           </Button>
           <Button 
             onClick={handleClose}
             fullWidth
             size="large"
-            sx={{ py: 2 }}
+            sx={{ 
+              py: 1.5,
+              fontSize: '0.9rem',
+              color: 'text.secondary'
+            }}
           >
             Cancel
           </Button>
