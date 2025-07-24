@@ -24,10 +24,13 @@ function InsightsDisplay({ users, events, eventsLoaded, isExpanded }) {
     const insights = generateAllInsights(events, users);
     
     if (insights.length > 0) {
-      // Cycle through insights
-      const selectedInsight = insights[insightIndex % insights.length];
-      setInsight(selectedInsight);
-      setInsightIndex(prev => (prev + 1) % insights.length);
+      // Cycle through insights using current index
+      setInsightIndex(prevIndex => {
+        const currentIndex = prevIndex % insights.length;
+        const selectedInsight = insights[currentIndex];
+        setInsight(selectedInsight);
+        return (prevIndex + 1) % insights.length;
+      });
     } else {
       setInsight(`📊 You have **${events.length}** event${events.length !== 1 ? 's' : ''} tracked.`);
     }
@@ -35,7 +38,7 @@ function InsightsDisplay({ users, events, eventsLoaded, isExpanded }) {
     // Fade in with new content
     await new Promise(resolve => setTimeout(resolve, 100));
     setIsTransitioning(false);
-  }, [users, events, eventsLoaded, insightIndex]);
+  }, [users, events, eventsLoaded]);
 
   const { handleManualTrigger } = useAutoRefreshTimer(
     generateNewInsight,
