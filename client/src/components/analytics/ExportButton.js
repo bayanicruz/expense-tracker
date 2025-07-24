@@ -83,7 +83,10 @@ function ExportButton() {
         disabled={loading}
         sx={{
           textTransform: 'none',
-          borderRadius: 2
+          borderRadius: 2,
+          backgroundColor: 'black',
+          color: 'white',
+          '&:hover': { backgroundColor: '#333333' }
         }}
       >
         {loading ? 'Exporting...' : 'Export Data as CSV'}

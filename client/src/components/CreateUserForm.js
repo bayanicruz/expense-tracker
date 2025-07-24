@@ -159,7 +159,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
             disabled={!userData.name || loading}
             fullWidth
             size="large"
-            sx={{ py: 2 }}
+            sx={{ py: 2, backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
           >
             Create User
           </Button>

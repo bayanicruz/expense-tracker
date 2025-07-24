@@ -212,6 +212,7 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
               onClick={handlePasswordSubmit}
               variant="contained"
               disabled={!password.trim()}
+              sx={{ backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
             >
               Authenticate
             </Button>

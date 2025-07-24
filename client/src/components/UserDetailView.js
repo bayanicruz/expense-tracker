@@ -539,7 +539,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
             onClick={handleClose}
             variant="contained"
             size="large"
-            sx={{ px: 4 }}
+            sx={{ px: 4, backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
           >
             Close
           </Button>
