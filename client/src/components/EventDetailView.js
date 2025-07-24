@@ -849,7 +849,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
           onClick={handleClose}
           variant="contained"
           size="large"
-          sx={{ px: 4 }}
+          sx={{ px: 4, backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
         >
           Close
         </Button>

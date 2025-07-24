@@ -20,7 +20,7 @@ function AnalyticsError({ error, onRetry }) {
         onClick={onRetry}
         variant="contained"
         startIcon={<RefreshIcon />}
-        sx={{ mt: 1 }}
+        sx={{ mt: 1, backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
       >
         Retry
       </Button>

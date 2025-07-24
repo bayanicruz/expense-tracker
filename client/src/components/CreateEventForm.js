@@ -618,7 +618,7 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
             disabled={!eventData.title || !eventData.eventDate || !eventData.owner || loading}
             fullWidth
             size="large"
-            sx={{ py: 2 }}
+            sx={{ py: 2, backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
           >
             Create Event
           </Button>

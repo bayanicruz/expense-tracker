@@ -71,7 +71,7 @@ function LoadingOverlay({ loading, children }) {
               backgroundColor: '#e3f2fd',
               borderRadius: 2,
               p: 3,
-              border: '1px solid #1976d2'
+              border: '1px solid black'
             }}>
               <Typography variant="h6" sx={{ 
                 color: 'primary.main', 
@@ -90,7 +90,7 @@ function LoadingOverlay({ loading, children }) {
                     backgroundColor: '#bbdefb',
                     '& .MuiLinearProgress-bar': {
                       borderRadius: 4,
-                      backgroundColor: '#1976d2'
+                      backgroundColor: 'black'
                     }
                   }} 
                 />

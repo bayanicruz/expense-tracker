@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Box } from '@mui/material';
+import { Box, ListItemText } from '@mui/material';
 import ExpandableList from './ExpandableList';
-import CreateUserForm from './CreateUserForm';
 import UserDetailView from './UserDetailView';
 import EventDetailView from './EventDetailView';
+import Avatar from './Avatar';
 import useApiCall from '../hooks/useApiCall';
+import { getUserAvatar } from '../utils/avatarUtils';
 
 const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }, ref) => {
   const [users, setUsers] = useState([]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [showUserDetail, setShowUserDetail] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [showEventDetail, setShowEventDetail] = useState(false);
@@ -114,20 +114,43 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }
     };
   };
 
-  const handleItemClick = (item) => {
-    if (item === 'create') {
-      setShowCreateForm(true);
-    } else {
-      setSelectedUserId(item._id);
-      setSelectedUser(item);
-      setShowUserDetail(true);
-      onUserClick && onUserClick(item);
-    }
+  const renderUserItem = (user) => {
+    const avatarProps = getUserAvatar(user);
+    const textData = getUserText(user);
+    
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+        <Avatar
+          initials={avatarProps.initials}
+          backgroundColor={avatarProps.backgroundColor}
+          color={avatarProps.color}
+          size={36}
+          fontSize={13}
+        />
+        <ListItemText
+          primary={textData.primary}
+          secondary={textData.secondary}
+          sx={{
+            '& .MuiListItemText-primary': {
+              fontWeight: 500,
+              fontSize: '0.95rem'
+            },
+            '& .MuiListItemText-secondary': {
+              fontSize: '0.8rem'
+            }
+          }}
+        />
+      </Box>
+    );
   };
 
-  const handleUserCreated = () => {
-    fetchUsers(); // Refresh the users list
+  const handleItemClick = (item) => {
+    setSelectedUserId(item._id);
+    setSelectedUser(item);
+    setShowUserDetail(true);
+    onUserClick && onUserClick(item);
   };
+
 
   const handleUserUpdated = () => {
     fetchUsers(); // Refresh the users list when user is updated
@@ -151,18 +174,12 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }
   return (
     <>
       <ExpandableList
-        title="Users"
+        title="Members"
         isOpen={isOpen}
         onToggle={onToggle}
-        createText="+ Create User"
         items={users}
         onItemClick={handleItemClick}
-        getItemText={getUserText}
-      />
-      <CreateUserForm 
-        open={showCreateForm}
-        onClose={() => setShowCreateForm(false)}
-        onUserCreated={handleUserCreated}
+        renderItem={renderUserItem}
       />
       <UserDetailView 
         ref={userDetailRef}

@@ -3,7 +3,9 @@ import { Box, Typography, ListItemText } from '@mui/material';
 import ExpandableList from './ExpandableList';
 import CreateEventForm from './CreateEventForm';
 import EventDetailView from './EventDetailView';
+import Avatar from './Avatar';
 import useApiCall from '../hooks/useApiCall';
+import { getEventAvatar } from '../utils/avatarUtils';
 
 function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingChange }) {
   const [events, setEvents] = useState([]);
@@ -65,52 +67,62 @@ function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingCh
     const owner = event.owner ? event.owner.name : 'Unknown';
     const remainingBalance = event.remainingBalance || 0;
     const isSettled = remainingBalance === 0 && event.totalAmount > 0;
+    const avatarProps = getEventAvatar(event);
     
     return (
-      <ListItemText 
-        primary={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body1">
-              {title}
-            </Typography>
-            {isSettled && (
-              <Typography variant="caption" sx={{ 
-                color: '#4caf50', 
-                fontWeight: 'medium',
-                backgroundColor: '#e8f5e8',
-                padding: '2px 4px',
-                borderRadius: '3px',
-                fontSize: '0.7rem'
-              }}>
-                Settled
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+        <Avatar
+          initials={avatarProps.initials}
+          backgroundColor={avatarProps.backgroundColor}
+          color={avatarProps.color}
+          size={36}
+          fontSize={13}
+        />
+        <ListItemText 
+          primary={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body1" sx={{ fontWeight: 500, fontSize: '0.95rem' }}>
+                {title}
               </Typography>
-            )}
-          </Box>
-        }
-        secondary={
-          <Box component="span">
-            <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
-              Owner:
+              {isSettled && (
+                <Typography variant="caption" sx={{ 
+                  color: '#4caf50', 
+                  fontWeight: 'medium',
+                  backgroundColor: '#e8f5e8',
+                  padding: '2px 4px',
+                  borderRadius: '3px',
+                  fontSize: '0.7rem'
+                }}>
+                  Settled
+                </Typography>
+              )}
             </Box>
-            {' '}
-            <Box component="span" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
-              {owner}
+          }
+          secondary={
+            <Box component="span" sx={{ fontSize: '0.8rem' }}>
+              <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
+                Owner:
+              </Box>
+              {' '}
+              <Box component="span" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
+                {owner}
+              </Box>
+              {remainingBalance > 0 && (
+                <>
+                  {' • '}
+                  <Box component="span" sx={{ color: 'error.main', fontWeight: 'medium' }}>
+                    ${remainingBalance.toFixed(2)}
+                  </Box>
+                  {' '}
+                  <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
+                    remaining
+                  </Box>
+                </>
+              )}
             </Box>
-            {remainingBalance > 0 && (
-              <>
-                {' • '}
-                <Box component="span" sx={{ color: 'error.main', fontWeight: 'medium' }}>
-                  ${remainingBalance.toFixed(2)}
-                </Box>
-                {' '}
-                <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.85em' }}>
-                  remaining
-                </Box>
-              </>
-            )}
-          </Box>
-        }
-      />
+          }
+        />
+      </Box>
     );
   };
 
@@ -141,7 +153,7 @@ function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingCh
   return (
     <>
       <ExpandableList
-        title="Events"
+        title="Expense Events"
         isOpen={isOpen}
         onToggle={onToggle}
         createText="+ Create Event"
