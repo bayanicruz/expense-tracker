@@ -18,7 +18,9 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
 import LoadingOverlay from './LoadingOverlay';
+import Avatar from './Avatar';
 import useApiCall from '../hooks/useApiCall';
+import { getUserAvatar } from '../utils/avatarUtils';
 
 function CreateEventForm({ open, onClose, onEventCreated }) {
   const [eventData, setEventData] = useState({
@@ -31,6 +33,8 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   const [expenseItems, setExpenseItems] = useState([
     { itemName: 'Expense', amount: '' }
   ]);
+  const [showAddExpenseItem, setShowAddExpenseItem] = useState(false);
+  const [newExpenseItem, setNewExpenseItem] = useState({ itemName: '', amount: '' });
   
   const [userSearch, setUserSearch] = useState('');
   const [availableUsers, setAvailableUsers] = useState([]);
@@ -43,6 +47,13 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [ownerSearchLoading, setOwnerSearchLoading] = useState(false);
   const { loading, apiCall } = useApiCall();
+
+  const getCreateEventColor = () => {
+    const colors = [
+      { bg: '#e8f5e8', text: '#388e3c' }, // Green for create event
+    ];
+    return colors[0];
+  };
 
   const handleEventChange = (field, value) => {
     setEventData(prev => ({
@@ -61,7 +72,18 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
   };
 
   const addExpenseItem = () => {
-    setExpenseItems(prev => [...prev, { itemName: '', amount: '' }]);
+    if (newExpenseItem.itemName.trim() && newExpenseItem.amount) {
+      setExpenseItems(prev => [...prev, { ...newExpenseItem }]);
+      setNewExpenseItem({ itemName: '', amount: '' });
+      setShowAddExpenseItem(false);
+    }
+  };
+
+  const handleNewExpenseChange = (field, value) => {
+    setNewExpenseItem(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const searchUsers = async (searchTerm) => {
@@ -315,12 +337,39 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
         <DialogTitle sx={{ 
           position: 'sticky', 
           top: 0, 
-          zIndex: 1, 
+          zIndex: 10, 
           backgroundColor: 'background.paper',
           borderBottom: '1px solid',
           borderColor: 'divider'
         }}>
-          Create New Event
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              backgroundColor: getCreateEventColor().bg,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Typography sx={{ 
+                fontSize: '1.3rem', 
+                fontWeight: 700,
+                color: getCreateEventColor().text
+              }}>
+                $
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem', mb: 0.5 }}>
+                Create New Event
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                Set up a new expense sharing event
+              </Typography>
+            </Box>
+          </Box>
         </DialogTitle>
         
         {/* Scrollable Content */}
@@ -333,31 +382,103 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
             borderRadius: '3px' 
           }
         }}>
-        <Stack spacing={3} sx={{ mt: 1 }}>
-          {/* Event Details */}
-          <TextField
-            label="Event Title"
-            fullWidth
-            value={eventData.title}
-            onChange={(e) => handleEventChange('title', e.target.value)}
-            required
-          />
-          
-          <TextField
-            label="Event Date"
-            type="date"
-            fullWidth
-            value={eventData.eventDate}
-            onChange={(e) => handleEventChange('eventDate', e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            required
-          />
+        <Stack spacing={1.5} sx={{ mt: 0.5 }}>
+          {/* Event Details Section */}
+          <Box sx={{ 
+            background: 'white',
+            borderRadius: '12px',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{
+              background: 'rgba(0,0,0,0.02)',
+              borderBottom: '1px solid rgba(0,0,0,0.05)',
+              px: 2,
+              py: 1.5
+            }}>              
+              <Typography variant="body2" sx={{ 
+                fontWeight: 600, 
+                fontSize: '0.85rem', 
+                color: 'text.primary'
+              }}>
+                Event Details
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2 }}>
+            <Stack spacing={2}>
+              <TextField
+                label="Event Title"
+                fullWidth
+                value={eventData.title}
+                onChange={(e) => handleEventChange('title', e.target.value)}
+                required
+                variant="outlined"
+                size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.85rem',
+                    height: '32px'
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.8rem'
+                  },
+                  '& .MuiInputLabel-shrink': {
+                    fontSize: '0.75rem'
+                  }
+                }}
+              />
+              
+              <TextField
+                label="Event Date"
+                type="date"
+                fullWidth
+                value={eventData.eventDate}
+                onChange={(e) => handleEventChange('eventDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                required
+                variant="outlined"
+                size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.85rem',
+                    height: '32px'
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.8rem'
+                  },
+                  '& .MuiInputLabel-shrink': {
+                    fontSize: '0.75rem'
+                  }
+                }}
+              />
+            </Stack>
+            </Box>
+          </Box>
 
           {/* Owner Section */}
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Event Owner
-            </Typography>
+          <Box sx={{ 
+            background: 'white',
+            borderRadius: '12px',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{
+              background: 'rgba(0,0,0,0.02)',
+              borderBottom: '1px solid rgba(0,0,0,0.05)',
+              px: 2,
+              py: 1.5
+            }}>              
+              <Typography variant="body2" sx={{ 
+                fontWeight: 600, 
+                fontSize: '0.85rem', 
+                color: 'text.primary'
+              }}>
+                Event Owner
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2 }}>
             
             <Autocomplete
               freeSolo
@@ -380,13 +501,26 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Search for event owner..."
-                  placeholder="Type to search for users"
+                  label="Owner"
+                  placeholder="Search owner..."
+                  size="small"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      fontSize: '0.85rem',
+                      height: '32px'
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.8rem'
+                    },
+                    '& .MuiInputLabel-shrink': {
+                      fontSize: '0.75rem'
+                    }
+                  }}
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
                       <>
-                        {ownerSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {ownerSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}
                         {params.InputProps.endAdornment}
                       </>
                     ),
@@ -394,9 +528,16 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                 />
               )}
               renderOption={(props, option) => (
-                <Box component="li" {...props}>
+                <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
+                  <Avatar
+                    {...getUserAvatar(option)}
+                    size={32}
+                    fontSize={14}
+                  />
                   <Box>
-                    <Typography variant="body1">{option.name || 'Unknown'}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>
+                      {option.name || 'Unknown'}
+                    </Typography>
                   </Box>
                 </Box>
               )}
@@ -405,26 +546,72 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
             {/* Selected Owner */}
             {selectedOwner && (
               <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                  Event owner:
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.8rem' }}>
+                  Selected owner:
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  <Chip
-                    label={`${selectedOwner.name || 'Unknown'}`}
-                    onDelete={removeOwner}
-                    deleteIcon={<CloseIcon />}
-                    color="secondary"
-                    variant="outlined"
-                  />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: 1,
+                    backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                    padding: '6px 12px 6px 6px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(25, 118, 210, 0.2)'
+                  }}>
+                    <Avatar
+                      {...getUserAvatar(selectedOwner)}
+                      size={24}
+                      fontSize={12}
+                    />
+                    <Typography variant="body2" sx={{ 
+                      color: '#1976d2', 
+                      fontWeight: 600,
+                      fontSize: '0.8rem'
+                    }}>
+                      {selectedOwner.name || 'Unknown'}
+                    </Typography>
+                    <IconButton 
+                      size="small" 
+                      onClick={removeOwner}
+                      sx={{ 
+                        width: '20px', 
+                        height: '20px', 
+                        ml: 0.5,
+                        color: '#1976d2'
+                      }}
+                    >
+                      <CloseIcon sx={{ fontSize: '14px' }} />
+                    </IconButton>
+                  </Box>
                 </Box>
               </Box>
             )}
+            </Box>
           </Box>
 
           {/* Participants Section */}
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6">
+          <Box sx={{ 
+            background: 'white',
+            borderRadius: '12px',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{
+              background: 'rgba(0,0,0,0.02)',
+              borderBottom: '1px solid rgba(0,0,0,0.05)',
+              px: 2,
+              py: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>              
+              <Typography variant="body2" sx={{ 
+                fontWeight: 600, 
+                fontSize: '0.85rem', 
+                color: 'text.primary'
+              }}>
                 Participants
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -432,8 +619,14 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                   variant="outlined" 
                   size="small"
                   onClick={addAllParticipants}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    minHeight: '28px',
+                    px: 1.5
+                  }}
                 >
-                  Add All Users
+                  Add All
                 </Button>
                 <Button 
                   variant="outlined" 
@@ -441,11 +634,18 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                   color="error"
                   onClick={removeAllParticipants}
                   disabled={selectedParticipants.length === 0}
+                  sx={{ 
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    minHeight: '28px',
+                    px: 1.5
+                  }}
                 >
-                  Remove All
+                  Clear All
                 </Button>
               </Box>
             </Box>
+            <Box sx={{ p: 2 }}>
             
             <Autocomplete
               freeSolo
@@ -468,13 +668,26 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Search users..."
-                  placeholder="Type to search for users"
+                  label="Participants"
+                  placeholder="Search participants..."
+                  size="small"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      fontSize: '0.85rem',
+                      height: '32px'
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.8rem'
+                    },
+                    '& .MuiInputLabel-shrink': {
+                      fontSize: '0.75rem'
+                    }
+                  }}
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
                       <>
-                        {userSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {userSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}
                         {params.InputProps.endAdornment}
                       </>
                     ),
@@ -482,120 +695,287 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
                 />
               )}
               renderOption={(props, option) => (
-                <Box component="li" {...props}>
+                <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
+                  <Avatar
+                    {...getUserAvatar(option)}
+                    size={32}
+                    fontSize={14}
+                  />
                   <Box>
-                    <Typography variant="body1">{option.name || 'Unknown'}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>
+                      {option.name || 'Unknown'}
+                    </Typography>
                   </Box>
                 </Box>
               )}
             />
 
-            {/* Selected Participants Tags */}
+            {/* Selected Participants */}
             {selectedParticipants.length > 0 && (
               <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                  Selected participants:
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.8rem' }}>
+                  Selected participants ({selectedParticipants.length}):
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {selectedParticipants.map((participant) => {
                     const isOwner = selectedOwner && selectedOwner._id === participant._id;
                     return (
-                      <Chip
-                        key={participant._id}
-                        label={`${participant.name || 'Unknown'}${isOwner ? ' - Owner' : ''}`}
-                        onDelete={() => removeParticipant(participant._id)}
-                        deleteIcon={<CloseIcon />}
-                        color={isOwner ? "secondary" : "primary"}
-                        variant="outlined"
-                      />
+                      <Box key={participant._id} sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        gap: 0.5,
+                        backgroundColor: isOwner ? 'rgba(25, 118, 210, 0.08)' : 'rgba(0,0,0,0.04)',
+                        padding: '4px 8px 4px 4px',
+                        borderRadius: '8px',
+                        border: `1px solid ${isOwner ? 'rgba(25, 118, 210, 0.2)' : 'rgba(0,0,0,0.1)'}`
+                      }}>
+                        <Avatar
+                          {...getUserAvatar(participant)}
+                          size={20}
+                          fontSize={10}
+                        />
+                        <Typography variant="body2" sx={{ 
+                          fontSize: '0.75rem',
+                          color: isOwner ? '#1976d2' : 'text.primary',
+                          fontWeight: isOwner ? 600 : 500
+                        }}>
+                          {participant.name || 'Unknown'}{isOwner ? ' (Owner)' : ''}
+                        </Typography>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => removeParticipant(participant._id)}
+                          sx={{ 
+                            width: '16px', 
+                            height: '16px', 
+                            ml: 0.5,
+                            color: isOwner ? '#1976d2' : 'text.secondary'
+                          }}
+                        >
+                          <CloseIcon sx={{ fontSize: '12px' }} />
+                        </IconButton>
+                      </Box>
                     );
                   })}
                 </Box>
               </Box>
             )}
+            </Box>
           </Box>
 
           {/* Expense Items Section */}
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                Expense Items
+          <Box sx={{ 
+            background: 'white',
+            borderRadius: '12px',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              px: 1.5,
+              py: 1,
+              background: 'rgba(0,0,0,0.02)',
+              borderBottom: '1px solid rgba(0,0,0,0.05)'
+            }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem', color: 'text.primary' }}>
+                Expense Items ({expenseItems.length})
               </Typography>
-              <IconButton onClick={addExpenseItem} color="primary">
-                <AddIcon />
-              </IconButton>
+              <Button
+                startIcon={showAddExpenseItem ? <CloseIcon /> : <AddIcon />}
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  setShowAddExpenseItem(!showAddExpenseItem);
+                  if (!showAddExpenseItem) {
+                    setNewExpenseItem({ itemName: '', amount: '' });
+                  }
+                }}
+                sx={{ 
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  minHeight: '28px'
+                }}
+              >
+                {showAddExpenseItem ? 'Cancel' : 'Add'}
+              </Button>
             </Box>
+            <Box sx={{ p: 2 }}>
 
-            <List>
-              {expenseItems.map((item, index) => (
-                <ListItem key={index} sx={{ px: 0 }}>
-                  <Box sx={{ display: 'flex', gap: 2, width: '100%', alignItems: 'center' }}>
-                    <TextField
-                      label="Item Name"
-                      value={item.itemName}
-                      onChange={(e) => handleExpenseChange(index, 'itemName', e.target.value)}
-                      sx={{ flexGrow: 1 }}
-                    />
-                    <TextField
-                      label="Amount"
-                      type="number"
-                      value={item.amount}
-                      onChange={(e) => handleExpenseChange(index, 'amount', e.target.value)}
-                      sx={{ 
-                        width: '120px',
-                        '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
-                          display: 'none',
-                        },
-                        '& input[type=number]': {
-                          MozAppearance: 'textfield',
-                        },
-                      }}
-                      inputProps={{ min: 0, step: 0.01 }}
-                      InputProps={{
-                        endAdornment: item.amount && parseFloat(item.amount) > 0 && (
-                          <IconButton
-                            size="small"
-                            onClick={() => handleExpenseChange(index, 'amount', '')}
-                            sx={{ p: 0.5 }}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        ),
-                      }}
-                    />
-                    <IconButton 
-                      onClick={() => removeExpenseItem(index)}
-                      disabled={expenseItems.length === 1}
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+            {/* Current Expense Items */}
+            {expenseItems.length > 0 ? (
+              <Stack spacing={0}>
+                {expenseItems.map((item, index) => (
+                  <Box key={index}>
+                    <Box sx={{ 
+                      px: 1.5,
+                      py: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      minHeight: '48px'
+                    }}>
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.9rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flexGrow: 1,
+                        minWidth: 0
+                      }}>
+                        {item.itemName}
+                      </Typography>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={item.amount || ''}
+                        onChange={(e) => handleExpenseChange(index, 'amount', e.target.value)}
+                        inputProps={{ min: 0, step: 0.01 }}
+                        sx={{ 
+                          width: '60px',
+                          '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                            display: 'none',
+                          },
+                          '& input[type=number]': {
+                            MozAppearance: 'textfield',
+                          },
+                          '& .MuiOutlinedInput-root': {
+                            fontSize: '0.75rem',
+                            height: '32px'
+                          },
+                          '& input': {
+                            textAlign: 'center',
+                            px: 0.5
+                          }
+                        }}
+                      />
+                  <IconButton 
+                    onClick={() => removeExpenseItem(index)}
+                    disabled={expenseItems.length === 1}
+                    sx={{
+                      width: '32px',
+                      height: '32px',
+                      color: expenseItems.length === 1 ? 'text.disabled' : 'error.main',
+                      border: '1px solid',
+                      borderColor: expenseItems.length === 1 ? 'rgba(0,0,0,0.12)' : 'error.main',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    <DeleteIcon sx={{ fontSize: '16px' }} />
+                  </IconButton>
+                    </Box>
+                    {index < expenseItems.length - 1 && (
+                      <Box sx={{ height: '1px', backgroundColor: 'rgba(0,0,0,0.05)', mx: 1.5 }} />
+                    )}
                   </Box>
-                </ListItem>
-              ))}
-            </List>
-
-            {/* Total and Split - Show if there are expense items with amounts */}
-            {expenseItems.some(item => item.amount && parseFloat(item.amount) > 0) && (
-              <Box sx={{ 
-                mt: 2, 
-                p: 3, 
-                backgroundColor: '#e3f2fd', 
-                borderRadius: 2, 
-                border: '1px solid #2196f3',
-                textAlign: 'center'
-              }}>
-                <Typography variant="h4" sx={{ mb: 1, color: '#1976d2' }}>
-                  ${calculateSplitPerPerson()}
-                </Typography>
-                <Typography variant="h6" sx={{ mb: 1, color: '#1976d2' }}>
-                  Per Person ({selectedParticipants.length} people)
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Total: ${calculateTotal()}
+                ))}
+              </Stack>
+            ) : (
+              <Box sx={{ p: 2, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                  No expense items added yet
                 </Typography>
               </Box>
             )}
+
+            {/* Add New Expense Item (conditionally shown) */}
+            {showAddExpenseItem && (
+              <Box sx={{ px: 1.5, py: 1, display: 'flex', gap: 1, alignItems: 'center', minHeight: '48px' }}>
+                <Box sx={{ flexGrow: 1 }}>
+                  <TextField
+                    placeholder="Item name..."
+                    value={newExpenseItem.itemName}
+                    onChange={(e) => handleNewExpenseChange('itemName', e.target.value)}
+                    size="small"
+                    variant="outlined"
+                    fullWidth
+                    sx={{ 
+                      '& .MuiOutlinedInput-root': {
+                        fontSize: '0.9rem',
+                        height: '32px'
+                      }
+                    }}
+                  />
+                </Box>
+                <TextField
+                  placeholder="0"
+                  type="number"
+                  value={newExpenseItem.amount}
+                  onChange={(e) => handleNewExpenseChange('amount', e.target.value)}
+                  size="small"
+                  inputProps={{ min: 0, step: 0.01 }}
+                  sx={{ 
+                    width: '60px',
+                    '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                      display: 'none',
+                    },
+                    '& input[type=number]': {
+                      MozAppearance: 'textfield',
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      fontSize: '0.75rem',
+                      height: '32px'
+                    },
+                    '& input': {
+                      textAlign: 'center',
+                      px: 0.5
+                    }
+                  }}
+                />
+                <IconButton 
+                  onClick={addExpenseItem}
+                  color="primary"
+                  disabled={!newExpenseItem.itemName.trim() || !newExpenseItem.amount}
+                  size="small"
+                  sx={{ 
+                    width: '32px',
+                    height: '32px',
+                    border: '1px solid rgba(25, 118, 210, 0.5)',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <AddIcon sx={{ fontSize: '16px' }} />
+                </IconButton>
+              </Box>
+            )}
+
+            {/* Total and Split Summary */}
+            {expenseItems.some(item => item.amount && parseFloat(item.amount) > 0) && (
+              <Box sx={{ 
+                mt: 2.5, 
+                p: 2.5, 
+                background: 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)',
+                borderRadius: '12px', 
+                border: '1px solid rgba(76, 175, 80, 0.3)',
+                textAlign: 'center'
+              }}>
+                <Typography variant="h4" sx={{ 
+                  mb: 0.5, 
+                  color: '#2e7d32',
+                  fontWeight: 700,
+                  fontSize: '2rem'
+                }}>
+                  ${calculateSplitPerPerson()}
+                </Typography>
+                <Typography variant="body1" sx={{ 
+                  mb: 1, 
+                  color: '#388e3c',
+                  fontWeight: 600,
+                  fontSize: '0.9rem'
+                }}>
+                  Per Person • {selectedParticipants.length} participant{selectedParticipants.length !== 1 ? 's' : ''}
+                </Typography>
+                <Typography variant="body2" sx={{ 
+                  color: 'rgba(46, 125, 50, 0.7)',
+                  fontSize: '0.8rem'
+                }}>
+                  Total Amount: ${calculateTotal()}
+                </Typography>
+              </Box>
+            )}
+            </Box>
           </Box>
         </Stack>
         </DialogContent>
@@ -604,31 +984,47 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
         <DialogActions sx={{ 
           position: 'sticky', 
           bottom: 0, 
-          zIndex: 1, 
+          zIndex: 10, 
           backgroundColor: 'background.paper',
           borderTop: '1px solid',
           borderColor: 'divider',
-          flexDirection: 'column', 
-          gap: 1, 
+          justifyContent: 'space-between',
           p: 2 
         }}>
+          <Button 
+            onClick={handleClose}
+            variant="text"
+            size="small"
+            sx={{ 
+              color: 'text.disabled',
+              fontSize: '0.75rem',
+              textTransform: 'none',
+              '&:hover': {
+                color: 'text.secondary',
+                backgroundColor: 'transparent'
+              }
+            }}
+          >
+            Cancel
+          </Button>
           <Button 
             onClick={handleSubmit} 
             variant="contained"
             disabled={!eventData.title || !eventData.eventDate || !eventData.owner || loading}
-            fullWidth
             size="large"
-            sx={{ py: 2, backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
+            sx={{ 
+              px: 4,
+              backgroundColor: 'black', 
+              color: 'white', 
+              '&:hover': { 
+                backgroundColor: '#333333' 
+              },
+              '&:disabled': {
+                backgroundColor: '#ccc'
+              }
+            }}
           >
             Create Event
-          </Button>
-          <Button 
-            onClick={handleClose}
-            fullWidth
-            size="large"
-            sx={{ py: 2 }}
-          >
-            Cancel
           </Button>
         </DialogActions>
       </LoadingOverlay>
