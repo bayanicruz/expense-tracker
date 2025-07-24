@@ -36,6 +36,7 @@ This app has a gossip feature to keep the user somewhat entertaintained and keep
 - Events owed section will appear for those events owned by the user
 - Events participated section will appear for those events the user participated in
 - Viewing the events via the list will give a quick summary of each expense. But can navigate into for even more details
+- User now renamed to Member from a label point of view
 
 ## Architecture
 - **Frontend**: React 19, Material-UI v7, Emotion CSS-in-JS

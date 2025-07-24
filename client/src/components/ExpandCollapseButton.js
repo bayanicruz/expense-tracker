@@ -67,7 +67,7 @@ function ExpandCollapseButton({ isExpanded, onToggle, onCreateUser }) {
             }
           }}
         >
-          👤 Add User
+          👤 Add Member
         </Typography>
       )}
     </Box>

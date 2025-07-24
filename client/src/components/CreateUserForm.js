@@ -108,7 +108,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
           borderBottom: '1px solid',
           borderColor: 'divider'
         }}>
-          Create New User
+          Add New Member
         </DialogTitle>
         
         {/* Scrollable Content */}
@@ -161,7 +161,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
             size="large"
             sx={{ py: 2, backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
           >
-            Create User
+            Add Member
           </Button>
           <Button 
             onClick={handleClose}
