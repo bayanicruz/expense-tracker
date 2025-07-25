@@ -11,20 +11,38 @@ import {
   DialogActions, 
   IconButton 
 } from '@mui/material';
-import { Assessment as AnalyticsIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Assessment as AnalyticsIcon, Close as CloseIcon, PersonAdd as PersonAddIcon } from '@mui/icons-material';
 import ExportButton from './components/analytics/ExportButton';
 import Header from './components/Header';
 import UsersList from './components/UsersList';
 import EventsList from './components/EventsList';
 import Analytics from './components/Analytics';
 import LoadingOverlay from './components/LoadingOverlay';
+import EmptyState from './components/EmptyState';
+import useDataFetching from './hooks/useDataFetching';
+import CreateUserForm from './components/CreateUserForm';
 
 function App() {
   const [usersOpen, setUsersOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(true);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [listsLoading, setListsLoading] = useState(false);
+  const [showCreateUserForm, setShowCreateUserForm] = useState(false);
   const usersListRef = useRef(null);
+  
+  const { 
+    users, 
+    events, 
+    usersLoaded, 
+    eventsLoaded, 
+    usersError, 
+    eventsError, 
+    isConnected, 
+    allDataLoaded, 
+    hasData, 
+    refreshData, 
+    retryConnection 
+  } = useDataFetching();
 
   const handleUsersClick = () => {
     setUsersOpen(!usersOpen);
@@ -63,6 +81,76 @@ function App() {
     if (usersListRef.current && usersListRef.current.refreshData) {
       usersListRef.current.refreshData();
     }
+    // Also refresh the app's data
+    refreshData();
+  };
+
+  const handleCreateFirstUser = () => {
+    setShowCreateUserForm(true);
+  };
+
+  const handleUserCreated = () => {
+    setShowCreateUserForm(false);
+    handleDataChanged();
+  };
+
+  const renderMainContent = () => {
+    // Show loading state while data is being fetched
+    if (!allDataLoaded) {
+      return (
+        <LoadingOverlay loading={true}>
+          <Box sx={{ height: '200px' }} />
+        </LoadingOverlay>
+      );
+    }
+
+    // Show connection error state
+    if (!isConnected) {
+      return (
+        <EmptyState
+          type="offline"
+          onRetry={retryConnection}
+        />
+      );
+    }
+
+    // Show empty state when no data exists
+    if (!hasData) {
+      return (
+        <Stack spacing={3}>
+          <EmptyState
+            type="users"
+            onAction={handleCreateFirstUser}
+          />
+          <Typography variant="body2" sx={{ 
+            textAlign: 'center', 
+            color: 'text.secondary',
+            fontStyle: 'italic' 
+          }}>
+            Welcome to your expense tracker! Start by adding members who will share expenses with you.
+          </Typography>
+        </Stack>
+      );
+    }
+
+    // Show normal content with lists
+    return (
+      <Stack spacing={2}>
+        <UsersList 
+          ref={usersListRef}
+          isOpen={usersOpen}
+          onToggle={handleUsersClick}
+          onUserClick={handleUserClick}
+          onLoadingChange={setListsLoading}
+        />
+        <EventsList 
+          isOpen={eventsOpen}
+          onToggle={handleEventsClick}
+          onEventClick={handleEventClick}
+          onLoadingChange={setListsLoading}
+        />
+      </Stack>
+    );
   };
 
   return (
@@ -76,22 +164,7 @@ function App() {
           backgroundColor: '#f9f9f9'
         }}>
           <LoadingOverlay loading={listsLoading}>
-            <Stack spacing={2}>
-              <UsersList 
-                ref={usersListRef}
-                isOpen={usersOpen}
-                onToggle={handleUsersClick}
-                onUserClick={handleUserClick}
-                onLoadingChange={setListsLoading}
-              />
-              <EventsList 
-                isOpen={eventsOpen}
-                onToggle={handleEventsClick}
-                onEventClick={handleEventClick}
-                onDataChanged={handleDataChanged}
-                onLoadingChange={setListsLoading}
-              />
-            </Stack>
+            {renderMainContent()}
           </LoadingOverlay>
           
           {/* Main Content Footer */}
@@ -167,6 +240,22 @@ function App() {
               Close
             </Button>
           </DialogActions>
+        </Dialog>
+
+        {/* Create User Dialog */}
+        <Dialog 
+          open={showCreateUserForm} 
+          onClose={() => setShowCreateUserForm(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Add Your First Member</DialogTitle>
+          <DialogContent>
+            <CreateUserForm 
+              onUserCreated={handleUserCreated}
+              onCancel={() => setShowCreateUserForm(false)}
+            />
+          </DialogContent>
         </Dialog>
       </Container>
     </Box>
