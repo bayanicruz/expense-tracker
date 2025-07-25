@@ -11,7 +11,7 @@ import {
   DialogActions, 
   IconButton 
 } from '@mui/material';
-import { Assessment as AnalyticsIcon, Close as CloseIcon, PersonAdd as PersonAddIcon } from '@mui/icons-material';
+import { Assessment as AnalyticsIcon, Close as CloseIcon } from '@mui/icons-material';
 import ExportButton from './components/analytics/ExportButton';
 import Header from './components/Header';
 import UsersList from './components/UsersList';
@@ -31,12 +31,6 @@ function App() {
   const usersListRef = useRef(null);
   
   const { 
-    users, 
-    events, 
-    usersLoaded, 
-    eventsLoaded, 
-    usersError, 
-    eventsError, 
     isConnected, 
     allDataLoaded, 
     hasData, 
