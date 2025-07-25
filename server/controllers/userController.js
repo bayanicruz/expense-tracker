@@ -214,6 +214,14 @@ const getUserExpenses = async (req, res) => {
         splitPerPerson: splitPerPerson,
         totalAmountPaid: totalAmountPaid,
         remainingBalance: remainingBalance,
+        // Include participant details for mutual debt calculation
+        participants: event.participants.map(p => ({
+          user: {
+            _id: p.user._id,
+            name: p.user.name
+          },
+          amountPaid: p.amountPaid || 0
+        })),
         expenseItems: expenseItems.map(item => ({
           itemName: item.itemName,
           amount: item.amount
@@ -260,6 +268,14 @@ const getUserExpenses = async (req, res) => {
           splitPerPerson: splitPerPerson,
           totalAmountPaid: totalAmountPaid,
           remainingBalance: remainingBalance,
+          // Include participant details for mutual debt calculation
+          participants: event.participants.map(p => ({
+            user: {
+              _id: p.user._id,
+              name: p.user.name
+            },
+            amountPaid: p.amountPaid || 0
+          })),
           expenseItems: expenseItems.map(item => ({
             itemName: item.itemName,
             amount: item.amount
@@ -283,6 +299,14 @@ const getUserExpenses = async (req, res) => {
           splitPerPerson: splitPerPerson,
           totalAmountPaid: totalAmountPaid,
           remainingBalance: remainingBalance,
+          // Include participant details for mutual debt calculation
+          participants: event.participants.map(p => ({
+            user: {
+              _id: p.user._id,
+              name: p.user.name
+            },
+            amountPaid: p.amountPaid || 0
+          })),
           expenseItems: expenseItems.map(item => ({
             itemName: item.itemName,
             amount: item.amount
