@@ -9,6 +9,10 @@ The approach for this app is Exense event based where each expense is usually re
 
 This app has a gossip feature to keep the user somewhat entertaintained and keep engagement. The gossip feature is meant to listen in to two people gossiping about the users and their expenses using snarky comments. This feature is by default not enabled but instead uses the reminder feature or perhaps more appropriately named as the insight feature which instead show insights on the data within the app. This extra feature is all done under the Header.js
 
+## NB
+- "User" has been renamed to "Member" because it makes sense. 
+- User = App User, Member = Member of the expense sharing events
+
 ## Gossip Feature
 - Location: `client/src/components/GossipDisplay.js`
 - Toggle: featureToggles.json | featureToggles.enableGossip
@@ -17,7 +21,7 @@ This app has a gossip feature to keep the user somewhat entertaintained and keep
 ## Reminder/Insights Feature
 - Location: `client/src/components/ReminderDisplay.js`
 - Toggle: featureToggles.json | featureToggles.enableReminders
-- TODO: improve insights based on the data already available; api callouts are expensive considering the backend host expense
+- TODO: improve insights based on the data already available; api callouts are expensive considering the backend host expense - DONE
 
 ## Analytics Feature
 - Location: `client/src/components/analytics/`
@@ -37,6 +41,15 @@ This app has a gossip feature to keep the user somewhat entertaintained and keep
 - Events participated section will appear for those events the user participated in
 - Viewing the events via the list will give a quick summary of each expense. But can navigate into for even more details
 - User now renamed to Member from a label point of view
+
+## Member View Expense
+- When a user views a member record, there is a feature that will list all the members they owe money to and the total next to it.
+- It should have the same design pattern as how the member view looks with the avatars
+- Questions
+    - What should this feature be named?
+    - Should it be another collapsable section but defaulted to open?
+    - Needs to be a bit more compact if it's a list under a section so the members can scale
+    - Another experience is to make it a link to open an new page like a report  
 
 ## Architecture
 - **Frontend**: React 19, Material-UI v7, Emotion CSS-in-JS
