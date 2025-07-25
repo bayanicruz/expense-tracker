@@ -17,14 +17,12 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }
   const { loading, apiCall } = useApiCall(onLoadingChange);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchUsers();
-    }
-  }, [isOpen]);
+    fetchUsers(); // Always fetch users on mount
+  }, []);
 
   useImperativeHandle(ref, () => ({
     refreshData: () => {
-      fetchUsers();
+      fetchUsers(); // Always refresh users regardless of open state
     }
   }));
 
@@ -171,6 +169,35 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }
     }
   };
 
+  const renderAvatarsWhenClosed = (users) => {
+    if (!users || users.length === 0) return null;
+    
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        gap: 0.5,
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        width: '100%'
+      }}>
+        {users.map((user) => {
+          const avatarProps = getUserAvatar(user);
+          return (
+            <Avatar
+              key={user._id}
+              initials={avatarProps.initials}
+              backgroundColor={avatarProps.backgroundColor}
+              color={avatarProps.color}
+              size={24}
+              fontSize={10}
+            />
+          );
+        })}
+      </Box>
+    );
+  };
+
   return (
     <>
       <ExpandableList
@@ -180,6 +207,8 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }
         items={users}
         onItemClick={handleItemClick}
         renderItem={renderUserItem}
+        showItemsWhenClosed={true}
+        renderItemsWhenClosed={renderAvatarsWhenClosed}
       />
       <UserDetailView 
         ref={userDetailRef}
