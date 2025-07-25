@@ -19,7 +19,10 @@ function ExpandableList({
   items = [], 
   onItemClick,
   getItemText,
-  renderItem
+  renderItem,
+  headerStyle = {},
+  showItemsWhenClosed = false,
+  renderItemsWhenClosed
 }) {
   return (
     <Box>
@@ -43,6 +46,7 @@ function ExpandableList({
           border: 'none',
           position: 'relative',
           overflow: 'hidden',
+          flexDirection: 'column',
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -54,8 +58,6 @@ function ExpandableList({
             pointerEvents: 'none'
           },
           '&:hover': {
-            background: 'white',
-            color: 'black',
             boxShadow: '0 16px 40px rgba(0,0,0,0.16), 0 8px 16px rgba(0,0,0,0.12)',
             transform: 'translateY(-4px) scale(1.02)',
             '& .chevron': {
@@ -79,26 +81,35 @@ function ExpandableList({
             }
           },
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          ...headerStyle
         }}
         onClick={onToggle}
-        endIcon={<ExpandMore className="chevron" />}
       >
-        <Box sx={{ textAlign: 'left', width: '100%' }}>
-          <Typography sx={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.2 }}>
-            {title}
-          </Typography>
-          {subtitle && (
-            <Typography sx={{ 
-              fontSize: '0.75rem', 
-              fontWeight: 400, 
-              opacity: 0.7,
-              lineHeight: 1.1,
-              mt: 0.25
-            }}>
-              {subtitle}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <Box sx={{ textAlign: 'left' }}>
+            <Typography sx={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.2 }}>
+              {title}
             </Typography>
-          )}
+            {subtitle && (
+              <Typography sx={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 400, 
+                opacity: 0.7,
+                lineHeight: 1.1,
+                mt: 0.25
+              }}>
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
+          <ExpandMore className="chevron" />
         </Box>
+        {/* Show items when closed */}
+        {!isOpen && showItemsWhenClosed && renderItemsWhenClosed && (
+          <Box sx={{ mt: 1, width: '100%' }}>
+            {renderItemsWhenClosed(items)}
+          </Box>
+        )}
       </Button>
       <Collapse in={isOpen} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>

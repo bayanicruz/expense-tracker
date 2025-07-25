@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 
-function Avatar({ initials, backgroundColor, color, size = 40, fontSize = 14 }) {
+function Avatar({ initials, backgroundColor, color, size = 40, fontSize = 14, sx = {} }) {
   return (
     <Box
       sx={{
@@ -29,7 +29,8 @@ function Avatar({ initials, backgroundColor, color, size = 40, fontSize = 14 }) 
           bottom: 0,
           background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%)',
           borderRadius: '50%',
-        }
+        },
+        ...sx
       }}
     >
       <Typography

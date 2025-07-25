@@ -12,7 +12,7 @@ import ExpandCollapseButton from './ExpandCollapseButton';
 import useFeatureToggles from '../hooks/useFeatureToggles';
 import useDataFetching from '../hooks/useDataFetching';
 
-function Header() {
+function Header({ onDataChanged }) {
   const { enableGossip, enableReminders, hasAnyFeature } = useFeatureToggles();
   const { users, events, eventsLoaded, allDataLoaded, refreshData } = useDataFetching();
   
@@ -31,6 +31,10 @@ function Header() {
     setShowCreateUserForm(false);
     if (refreshData) {
       refreshData();
+    }
+    // Also notify parent component to refresh any dependent lists
+    if (onDataChanged) {
+      onDataChanged();
     }
   };
 

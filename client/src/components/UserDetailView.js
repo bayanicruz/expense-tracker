@@ -24,6 +24,8 @@ import { ExpandMore as ExpandMoreIcon, Edit as EditIcon, Close as CloseIcon, Che
 import LoadingOverlay from './LoadingOverlay';
 import Avatar from './Avatar';
 import { getUserAvatar } from '../utils/avatarUtils';
+import { calculateTotalOwesToOthers, calculateTotalOwedToUser, formatCurrency } from '../utils/debtUtils';
+import MutualDebtsSection from './MembersOwedSection';
 
 const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEventClick }, ref) => {
   const [userData, setUserData] = useState({
@@ -207,7 +209,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
         <DialogTitle sx={{ 
           position: 'sticky', 
           top: 0, 
-          zIndex: 1, 
+          zIndex: 10, 
           backgroundColor: 'background.paper',
           borderBottom: '1px solid',
           borderColor: 'divider'
@@ -219,9 +221,11 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                   {...getUserAvatar(userData)}
                   size={48}
                   fontSize={16}
+                  sx={{ position: 'relative', zIndex: 1 }}
                 />
               )}
               <Box sx={{ flexGrow: 1 }}>
+                {/* Name and Edit Controls */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                   {isEditing ? (
                     <>
@@ -263,11 +267,73 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                     </>
                   )}
                 </Box>
-                {userData.createdAt && (
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                    Member since {formatDate(userData.createdAt)}
-                  </Typography>
-                )}
+                
+                {/* Member Info and Financial Summary Row */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 1
+                }}>
+                  {/* Member Since */}
+                  {userData.createdAt && (
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                      Member since {formatDate(userData.createdAt)}
+                    </Typography>
+                  )}
+                  
+                  {/* Financial Summary */}
+                  {expenseData.eventBreakdown.length > 0 && (() => {
+                    const totalOwes = calculateTotalOwesToOthers(expenseData.eventBreakdown, userId);
+                    const totalOwedToUser = calculateTotalOwedToUser(expenseData.eventBreakdown, userId);
+                    
+                    if (totalOwes === 0 && totalOwedToUser === 0) return null;
+                    
+                    return (
+                      <Box sx={{ 
+                        display: 'flex', 
+                        gap: 0.75,
+                        alignItems: 'center'
+                      }}>
+                        {totalOwes > 0 && (
+                          <Chip
+                            label={`Owes ${formatCurrency(totalOwes)}`}
+                            size="small"
+                            sx={{
+                              backgroundColor: '#ffebee',
+                              color: '#c62828',
+                              border: '1px solid #ffcdd2',
+                              fontWeight: 600,
+                              fontSize: '0.7rem',
+                              height: '20px',
+                              '& .MuiChip-label': {
+                                px: 0.75
+                              }
+                            }}
+                          />
+                        )}
+                        {totalOwedToUser > 0 && (
+                          <Chip
+                            label={`To Collect ${formatCurrency(totalOwedToUser)}`}
+                            size="small"
+                            sx={{
+                              backgroundColor: '#e8f5e8',
+                              color: '#2e7d32',
+                              border: '1px solid #c8e6c8',
+                              fontWeight: 600,
+                              fontSize: '0.7rem',
+                              height: '20px',
+                              '& .MuiChip-label': {
+                                px: 0.75
+                              }
+                            }}
+                          />
+                        )}
+                      </Box>
+                    );
+                  })()}
+                </Box>
               </Box>
             </Box>
           </Box>
@@ -298,6 +364,12 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
             </Box>
           ) : (
             <Stack spacing={2}>
+                {/* Member Balances Section */}
+                <MutualDebtsSection 
+                  eventBreakdown={expenseData.eventBreakdown}
+                  userId={userId}
+                />
+
                 {/* Events Participated Accordion */}
                 {(() => {
                   const participatedEvents = expenseData.eventBreakdown
@@ -351,27 +423,9 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                           '& .MuiAccordionSummary-content': { my: 0.5 }
                         }}
                       >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', pr: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem', color: 'text.primary' }}>
-                            Events Participated ({participatedEvents.length})
-                          </Typography>
-                          <Box sx={{ 
-                            px: 1, 
-                            py: 0.25, 
-                            backgroundColor: expenseData.totalOwed > 0 ? '#ffebee' : '#e8f5e8', 
-                            borderRadius: '4px',
-                            border: `1px solid ${expenseData.totalOwed > 0 ? '#ffcdd2' : '#c8e6c8'}`
-                          }}>
-                            <Typography variant="caption" sx={{ 
-                              color: expenseData.totalOwed > 0 ? '#d32f2f' : '#2e7d32',
-                              fontWeight: 600,
-                              fontSize: '0.65rem',
-                              lineHeight: 1
-                            }}>
-                              {expenseData.totalOwed > 0 ? `$${expenseData.totalOwed.toFixed(2)}` : '✓'}
-                            </Typography>
-                          </Box>
-                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem', color: 'text.primary' }}>
+                          Events Participated ({participatedEvents.length})
+                        </Typography>
                       </AccordionSummary>
                       <AccordionDetails sx={{ p: 0 }}>
                         <Stack spacing={0}>
@@ -393,9 +447,26 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                                     <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '0.95rem', mb: 0.5 }}>
                                       {event.eventTitle}
                                     </Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                                      {formatDate(event.eventDate)} • {event.participantCount} member{event.participantCount !== 1 ? 's' : ''}
-                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                        {formatDate(event.eventDate)} • {event.participantCount} member{event.participantCount !== 1 ? 's' : ''}
+                                      </Typography>
+                                      {event.eventOwner && (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                            •
+                                          </Typography>
+                                          <Avatar
+                                            {...getUserAvatar(event.eventOwner)}
+                                            size={16}
+                                            fontSize={8}
+                                          />
+                                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                            {event.eventOwner.name}
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                    </Box>
                                   </Box>
                                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                                     <Chip 
@@ -507,27 +578,9 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                           '& .MuiAccordionSummary-content': { my: 0.5 }
                         }}
                       >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', pr: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem', color: 'text.primary' }}>
-                            Events Owned ({ownedEvents.length})
-                          </Typography>
-                          <Box sx={{ 
-                            px: 1, 
-                            py: 0.25, 
-                            backgroundColor: totalToCollect > 0 ? '#fff3e0' : '#e8f5e8', 
-                            borderRadius: '4px',
-                            border: `1px solid ${totalToCollect > 0 ? '#ffcc80' : '#c8e6c8'}`
-                          }}>
-                            <Typography variant="caption" sx={{ 
-                              color: totalToCollect > 0 ? '#e65100' : '#2e7d32',
-                              fontWeight: 600,
-                              fontSize: '0.65rem',
-                              lineHeight: 1
-                            }}>
-                              {totalToCollect > 0 ? `$${totalToCollect.toFixed(2)}` : '✓'}
-                            </Typography>
-                          </Box>
-                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem', color: 'text.primary' }}>
+                          Events Owned ({ownedEvents.length})
+                        </Typography>
                       </AccordionSummary>
                       <AccordionDetails sx={{ p: 0 }}>
                         <Stack spacing={0}>
@@ -632,7 +685,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
         <DialogActions sx={{ 
           position: 'sticky', 
           bottom: 0, 
-          zIndex: 1, 
+          zIndex: 10, 
           backgroundColor: 'background.paper',
           borderTop: '1px solid',
           borderColor: 'divider',

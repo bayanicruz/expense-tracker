@@ -1,5 +1,6 @@
 // Main insight orchestrator - combines all insight types
-import { generateDebtInsights, generatePaymentInsights } from './debtInsights';
+import { generateDebtInsights, generatePaymentInsights, generateMemberRelationshipInsights } from './debtInsights';
+import { generateMutualDebtInsights, generateBalancePatternInsights, generateDebtWarningInsights } from './memberBalanceInsights';
 import { generateCelebrationInsights, generateProgressInsights, generateRecognitionInsights } from './celebrationInsights';
 import { generateFrequencyInsights, generateCategoryInsights, generateGroupInsights, generatePerformanceInsights, generateActivityInsights } from './dataInsights';
 import { generateEncouragementInsights, generateTrendInsights, generateParticipationInsights } from './encouragementInsights';
@@ -11,6 +12,13 @@ export const generateAllInsights = (events, users) => {
   // Collect insights from all generators
   insights.push(...generateDebtInsights(events, users));
   insights.push(...generatePaymentInsights(events, users));
+  insights.push(...generateMemberRelationshipInsights(events, users));
+  
+  // New member balance insights
+  insights.push(...generateMutualDebtInsights(events, users));
+  insights.push(...generateBalancePatternInsights(events, users));
+  insights.push(...generateDebtWarningInsights(events, users));
+  
   insights.push(...generateCelebrationInsights(events, users));
   insights.push(...generateProgressInsights(events, users));
   insights.push(...generateRecognitionInsights(events, users));
