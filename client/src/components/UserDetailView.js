@@ -447,9 +447,26 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                                     <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '0.95rem', mb: 0.5 }}>
                                       {event.eventTitle}
                                     </Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                                      {formatDate(event.eventDate)} • {event.participantCount} member{event.participantCount !== 1 ? 's' : ''}
-                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                        {formatDate(event.eventDate)} • {event.participantCount} member{event.participantCount !== 1 ? 's' : ''}
+                                      </Typography>
+                                      {event.eventOwner && (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                            •
+                                          </Typography>
+                                          <Avatar
+                                            {...getUserAvatar(event.eventOwner)}
+                                            size={16}
+                                            fontSize={8}
+                                          />
+                                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                            {event.eventOwner.name}
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                    </Box>
                                   </Box>
                                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                                     <Chip 
