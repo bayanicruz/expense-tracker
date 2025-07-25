@@ -10,18 +10,17 @@ import {
 } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import MemberDebtItem from './MemberDebtItem';
-import { calculateMembersOwed, calculateTotalOwed, formatCurrency } from '../utils/debtUtils';
+import { calculateMutualDebts } from '../utils/debtUtils';
 
-const MembersOwedSection = ({ 
+const MutualDebtsSection = ({ 
   eventBreakdown, 
   userId, 
   expanded = true // Default to expanded for visibility
 }) => {
-  const membersOwed = calculateMembersOwed(eventBreakdown, userId);
-  const totalOwedAmount = calculateTotalOwed(membersOwed);
+  const mutualDebts = calculateMutualDebts(eventBreakdown, userId);
 
-  // Don't render if no debts
-  if (membersOwed.length === 0) {
+  // Don't render if no debt relationships
+  if (mutualDebts.length === 0) {
     return null;
   }
 
@@ -40,8 +39,8 @@ const MembersOwedSection = ({
       <AccordionSummary 
         expandIcon={<ExpandMoreIcon sx={{ fontSize: '1.2rem' }} />}
         sx={{
-          background: 'rgba(244, 67, 54, 0.02)', // Light red background
-          borderBottom: '1px solid rgba(244, 67, 54, 0.1)',
+          background: 'rgba(0,0,0,0.02)',
+          borderBottom: '1px solid rgba(0,0,0,0.05)',
           minHeight: '48px',
           py: 0.5,
           '&.Mui-expanded': { minHeight: '48px' },
@@ -53,21 +52,22 @@ const MembersOwedSection = ({
           fontSize: '0.85rem', 
           color: 'text.primary' 
         }}>
-          Members Owed ({membersOwed.length})
+          Member Balances ({mutualDebts.length})
         </Typography>
       </AccordionSummary>
       
       <AccordionDetails sx={{ p: 0 }}>
         <Stack spacing={0}>
-          {membersOwed.map((member, index) => (
+          {mutualDebts.map((member, index) => (
             <Box key={member.memberId}>
               <MemberDebtItem
                 memberId={member.memberId}
                 memberName={member.memberName}
-                totalOwed={member.totalOwed}
-                eventCount={member.eventCount}
+                userOwes={member.userOwes}
+                owesToUser={member.owesToUser}
+                netAmount={member.netAmount}
               />
-              {index < membersOwed.length - 1 && (
+              {index < mutualDebts.length - 1 && (
                 <Divider sx={{ mx: 2 }} />
               )}
             </Box>
@@ -78,4 +78,4 @@ const MembersOwedSection = ({
   );
 };
 
-export default MembersOwedSection;
+export default MutualDebtsSection;

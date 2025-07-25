@@ -81,3 +81,74 @@ export const calculateTotalOwedToUser = (eventBreakdown, userId) => {
   );
   return ownedEvents.reduce((sum, event) => sum + (event.remainingBalance || 0), 0);
 };
+
+// Calculate mutual debts between user and other members
+export const calculateMutualDebts = (eventBreakdown, userId) => {
+  const memberDebts = new Map();
+
+  eventBreakdown.forEach(event => {
+    const eventOwnerId = event.eventOwner?._id;
+    const eventOwnerName = event.eventOwner?.name;
+
+    if (eventOwnerId === userId) {
+      // User owns this event - calculate how much each participant owes them
+      event.participants?.forEach(participant => {
+        if (participant.user._id !== userId) {
+          const participantId = participant.user._id;
+          const participantName = participant.user.name;
+          const participantShare = event.eventTotal / event.participantCount;
+          const participantPaid = participant.amountPaid || 0;
+          const participantOwes = Math.max(0, participantShare - participantPaid);
+
+          if (participantOwes > 0) {
+            const key = participantId;
+            if (memberDebts.has(key)) {
+              const existing = memberDebts.get(key);
+              memberDebts.set(key, {
+                ...existing,
+                owesToUser: existing.owesToUser + participantOwes
+              });
+            } else {
+              memberDebts.set(key, {
+                memberId: participantId,
+                memberName: participantName,
+                userOwes: 0,
+                owesToUser: participantOwes
+              });
+            }
+          }
+        }
+      });
+    } else if (event.amountOwed > 0 && eventOwnerId && eventOwnerId !== userId) {
+      // User participates and owes money to the owner
+      const key = eventOwnerId;
+      if (memberDebts.has(key)) {
+        const existing = memberDebts.get(key);
+        memberDebts.set(key, {
+          ...existing,
+          userOwes: existing.userOwes + event.amountOwed
+        });
+      } else {
+        memberDebts.set(key, {
+          memberId: eventOwnerId,
+          memberName: eventOwnerName,
+          userOwes: event.amountOwed,
+          owesToUser: 0
+        });
+      }
+    }
+  });
+
+  // Convert to array and calculate net amounts
+  return Array.from(memberDebts.values())
+    .map(member => ({
+      ...member,
+      netAmount: member.owesToUser - member.userOwes, // Positive = they owe user, Negative = user owes them
+      hasRelationship: member.userOwes > 0 || member.owesToUser > 0
+    }))
+    .filter(member => member.hasRelationship)
+    .sort((a, b) => {
+      // Sort by absolute net amount, highest first
+      return Math.abs(b.netAmount) - Math.abs(a.netAmount);
+    });
+};

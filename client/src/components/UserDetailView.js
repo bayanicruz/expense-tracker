@@ -25,7 +25,7 @@ import LoadingOverlay from './LoadingOverlay';
 import Avatar from './Avatar';
 import { getUserAvatar } from '../utils/avatarUtils';
 import { calculateTotalOwesToOthers, calculateTotalOwedToUser, formatCurrency } from '../utils/debtUtils';
-import MembersOwedSection from './MembersOwedSection';
+import MutualDebtsSection from './MembersOwedSection';
 
 const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEventClick }, ref) => {
   const [userData, setUserData] = useState({
@@ -209,7 +209,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
         <DialogTitle sx={{ 
           position: 'sticky', 
           top: 0, 
-          zIndex: 1, 
+          zIndex: 10, 
           backgroundColor: 'background.paper',
           borderBottom: '1px solid',
           borderColor: 'divider'
@@ -221,6 +221,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
                   {...getUserAvatar(userData)}
                   size={48}
                   fontSize={16}
+                  sx={{ position: 'relative', zIndex: 1 }}
                 />
               )}
               <Box sx={{ flexGrow: 1 }}>
@@ -363,8 +364,8 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
             </Box>
           ) : (
             <Stack spacing={2}>
-                {/* Members Owed Section */}
-                <MembersOwedSection 
+                {/* Member Balances Section */}
+                <MutualDebtsSection 
                   eventBreakdown={expenseData.eventBreakdown}
                   userId={userId}
                 />
@@ -667,7 +668,7 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
         <DialogActions sx={{ 
           position: 'sticky', 
           bottom: 0, 
-          zIndex: 1, 
+          zIndex: 10, 
           backgroundColor: 'background.paper',
           borderTop: '1px solid',
           borderColor: 'divider',
