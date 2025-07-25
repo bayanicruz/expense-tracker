@@ -19,9 +19,8 @@ function LoadingOverlay({ loading, children }) {
         const duration = Date.now() - startTime;
         setLoadingDuration(duration);
 
-        // Show cold start message after 3 seconds
         if (duration > 3000) {
-          setShowColdStartMessage(true);
+        setShowColdStartMessage(true);
         }
       }, 500);
     } else {
@@ -41,14 +40,14 @@ function LoadingOverlay({ loading, children }) {
       {children}
       <Backdrop
         sx={{
-          position: 'absolute',
+          position: showColdStartMessage ? 'fixed' : 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          zIndex: 1000,
-          borderRadius: 'inherit',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          zIndex: showColdStartMessage ? 9999 : 1000,
+          borderRadius: showColdStartMessage ? 0 : 'inherit',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -68,13 +67,14 @@ function LoadingOverlay({ loading, children }) {
             <Box sx={{ 
               textAlign: 'center', 
               maxWidth: 400,
-              backgroundColor: '#e3f2fd',
-              borderRadius: 2,
+              backgroundColor: '#f8fbff',
+              borderRadius: 3,
               p: 3,
-              border: '1px solid black'
+              border: '1px solid #e3f2fd',
+              boxShadow: '0 4px 12px rgba(25, 118, 210, 0.08)'
             }}>
               <Typography variant="h6" sx={{ 
-                color: 'primary.main', 
+                color: '#1976d2', 
                 fontWeight: 600,
                 mb: 2
               }}>
@@ -85,31 +85,32 @@ function LoadingOverlay({ loading, children }) {
               <Box sx={{ width: '100%', mb: 2 }}>
                 <LinearProgress 
                   sx={{ 
-                    height: 8, 
-                    borderRadius: 4,
-                    backgroundColor: '#bbdefb',
+                    height: 6, 
+                    borderRadius: 3,
+                    backgroundColor: '#e3f2fd',
                     '& .MuiLinearProgress-bar': {
-                      borderRadius: 4,
-                      backgroundColor: 'black'
+                      borderRadius: 3,
+                      backgroundColor: '#1976d2'
                     }
                   }} 
                 />
               </Box>
               
               <Typography variant="body2" sx={{ 
-                color: 'text.primary', 
+                color: '#424242', 
                 mb: 2,
                 fontWeight: 500
               }}>
                 The server is waking up from sleep mode
               </Typography>
               <Typography variant="caption" sx={{ 
-                color: 'text.secondary',
+                color: '#757575',
                 display: 'block',
-                backgroundColor: '#f5f5f5',
+                backgroundColor: '#f0f7ff',
                 padding: '8px 12px',
-                borderRadius: 1,
-                fontStyle: 'italic'
+                borderRadius: 2,
+                fontStyle: 'italic',
+                border: '1px solid #e3f2fd'
               }}>
                 ⏱️ This may take up to 30 seconds on first load
               </Typography>
@@ -120,14 +121,15 @@ function LoadingOverlay({ loading, children }) {
           {loadingDuration > 15000 && (
             <Box sx={{
               textAlign: 'center',
-              backgroundColor: '#fff3e0',
-              borderRadius: 2,
+              backgroundColor: '#fffbf0',
+              borderRadius: 3,
               p: 2,
-              border: '1px solid #ff9800',
-              maxWidth: 350
+              border: '1px solid #ffecb3',
+              maxWidth: 350,
+              boxShadow: '0 2px 8px rgba(255, 152, 0, 0.08)'
             }}>
               <Typography variant="body2" sx={{ 
-                color: 'warning.dark',
+                color: '#f57c00',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
@@ -138,7 +140,7 @@ function LoadingOverlay({ loading, children }) {
                 ⚡ Almost Ready!
               </Typography>
               <Typography variant="caption" sx={{ 
-                color: 'warning.main',
+                color: '#bf8300',
                 fontStyle: 'italic',
                 display: 'block'
               }}>
