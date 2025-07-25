@@ -41,12 +41,18 @@ export const useDataFetching = () => {
     fetchEvents();
   }, [fetchUsers, fetchEvents]);
 
+  const refreshData = useCallback(() => {
+    fetchUsers();
+    fetchEvents();
+  }, [fetchUsers, fetchEvents]);
+
   return {
     users,
     events,
     usersLoaded,
     eventsLoaded,
-    allDataLoaded: usersLoaded && eventsLoaded
+    allDataLoaded: usersLoaded && eventsLoaded,
+    refreshData
   };
 };
 

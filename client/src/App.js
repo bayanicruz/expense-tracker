@@ -67,7 +67,7 @@ function App() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Header />
+      <Header onDataChanged={handleDataChanged} />
       <Container maxWidth="sm" sx={{ mt: 4 }}>
         <Box sx={{ 
           border: '1px solid #ddd', 
