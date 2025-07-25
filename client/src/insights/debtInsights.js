@@ -1,5 +1,6 @@
 // Debt and payment related insights
 import { getEventName, getOwnerName, getParticipantName, getParticipantShare } from '../utils/insightUtils';
+import { calculateMutualDebts, formatCurrency } from '../utils/debtUtils';
 
 export const generateDebtInsights = (events, users) => {
   const insights = [];
@@ -56,6 +57,56 @@ export const generatePaymentInsights = (events, users) => {
           }
         }
       });
+    }
+  });
+  
+  return insights;
+};
+
+// New function: Generate member relationship insights
+export const generateMemberRelationshipInsights = (events, users) => {
+  const insights = [];
+  
+  // Generate insights for interesting member relationships
+  users.forEach(user => {
+    const userEvents = events.filter(event => 
+      event.participants?.some(p => p.user?._id === user._id) ||
+      event.owner === user._id
+    );
+    
+    if (userEvents.length === 0) return;
+    
+    // Find the most frequent debt partner
+    const debtCounts = {};
+    userEvents.forEach(event => {
+      if (event.owner === user._id) {
+        // Count participants in events user owns
+        event.participants?.forEach(p => {
+          if (p.user?._id !== user._id) {
+            debtCounts[p.user._id] = (debtCounts[p.user._id] || 0) + 1;
+          }
+        });
+      } else if (event.participants?.some(p => p.user?._id === user._id)) {
+        // Count events user participates in
+        const ownerId = event.owner;
+        if (ownerId !== user._id) {
+          debtCounts[ownerId] = (debtCounts[ownerId] || 0) + 1;
+        }
+      }
+    });
+    
+    const mostFrequentPartner = Object.entries(debtCounts)
+      .sort(([,a], [,b]) => b - a)[0];
+      
+    if (mostFrequentPartner && mostFrequentPartner[1] >= 3) {
+      const partnerId = mostFrequentPartner[0];
+      const partnerName = users.find(u => u._id?.toString() === partnerId?.toString())?.name || 'Unknown';
+      const eventCount = mostFrequentPartner[1];
+      
+      // Only add insight if we found the partner name
+      if (partnerName !== 'Unknown') {
+        insights.push(`🤝 **${user.name}** and **${partnerName}** frequently share expenses - involved in **${eventCount}** events together!`);
+      }
     }
   });
   
