@@ -37,10 +37,10 @@ const EmptyState = ({
       case 'offline':
         return {
           icon: <OfflineIcon sx={{ fontSize: 64, color: 'warning.main', mb: 2 }} />,
-          title: 'Connection Issue',
-          description: 'Unable to connect to the server. Please check your connection and try again.',
-          actionLabel: 'Retry Connection',
-          actionIcon: <RefreshIcon />
+          title: 'Server Unavailable',
+          description: 'The server is currently down for maintenance. Please try again later or reach out to kuruzu',
+          actionLabel: null,
+          actionIcon: null
         };
       
       default:
@@ -90,38 +90,26 @@ const EmptyState = ({
         {config.description}
       </Typography>
 
-      <Stack direction="row" spacing={2}>
-        {onAction && (
-          <Button
-            variant="contained"
-            startIcon={config.actionIcon}
-            onClick={onAction}
-            sx={{
-              backgroundColor: 'black',
-              color: 'white',
-              '&:hover': { backgroundColor: '#333333' },
-              textTransform: 'none',
-              fontWeight: 500
-            }}
-          >
-            {config.actionLabel}
-          </Button>
-        )}
-        
-        {type === 'offline' && onRetry && (
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={onRetry}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 500
-            }}
-          >
-            Retry
-          </Button>
-        )}
-      </Stack>
+      {type !== 'offline' && (
+        <Stack direction="row" spacing={2}>
+          {onAction && (
+            <Button
+              variant="contained"
+              startIcon={config.actionIcon}
+              onClick={onAction}
+              sx={{
+                backgroundColor: 'black',
+                color: 'white',
+                '&:hover': { backgroundColor: '#333333' },
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              {config.actionLabel}
+            </Button>
+          )}
+        </Stack>
+      )}
     </Box>
   );
 };
