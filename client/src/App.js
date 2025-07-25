@@ -149,7 +149,7 @@ function App() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Header onDataChanged={handleDataChanged} />
+      <Header onDataChanged={handleDataChanged} isConnected={isConnected} />
       <Container maxWidth="sm" sx={{ mt: 4 }}>
         <Box sx={{ 
           border: '1px solid #ddd', 
@@ -167,28 +167,30 @@ function App() {
             pt: 2, 
             mt: 3,
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: isConnected ? 'space-between' : 'center',
             alignItems: 'center'
           }}>
             <Typography variant="caption" color="textSecondary">
               © kuruzu 2025
             </Typography>
-            <Button
-              size="small"
-              variant="text"
-              startIcon={<AnalyticsIcon />}
-              onClick={handleAnalyticsOpen}
-              sx={{ 
-                textTransform: 'none',
-                color: 'text.secondary',
-                fontSize: '0.75rem',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                }
-              }}
-            >
-              Storage Insights
-            </Button>
+            {isConnected && (
+              <Button
+                size="small"
+                variant="text"
+                startIcon={<AnalyticsIcon />}
+                onClick={handleAnalyticsOpen}
+                sx={{ 
+                  textTransform: 'none',
+                  color: 'text.secondary',
+                  fontSize: '0.75rem',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                  }
+                }}
+              >
+                Storage Insights
+              </Button>
+            )}
           </Box>
         </Box>
         

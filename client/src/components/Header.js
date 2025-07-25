@@ -12,12 +12,16 @@ import ExpandCollapseButton from './ExpandCollapseButton';
 import useFeatureToggles from '../hooks/useFeatureToggles';
 import useDataFetching from '../hooks/useDataFetching';
 
-function Header({ onDataChanged }) {
+function Header({ onDataChanged, isConnected = true }) {
   const { enableGossip, enableReminders, hasAnyFeature } = useFeatureToggles();
   const { users, events, eventsLoaded, allDataLoaded, refreshData } = useDataFetching();
   
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCreateUserForm, setShowCreateUserForm] = useState(false);
+  
+  // Force collapsed state when offline
+  const effectiveExpanded = isConnected ? isExpanded : false;
+  const effectiveHasFeature = isConnected ? hasAnyFeature : false;
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
@@ -41,13 +45,13 @@ function Header({ onDataChanged }) {
 
   return (
     <AppBar position="sticky" sx={{ 
-      backgroundColor: !hasAnyFeature || !isExpanded ? 'black' : 'white', 
-      color: !hasAnyFeature || !isExpanded ? 'white' : 'black' 
+      backgroundColor: !effectiveHasFeature || !effectiveExpanded ? 'black' : 'white', 
+      color: !effectiveHasFeature || !effectiveExpanded ? 'white' : 'black' 
     }}>
-      <Toolbar sx={{ justifyContent: 'center', py: !hasAnyFeature || !isExpanded ? 1 : 2, minHeight: !hasAnyFeature || !isExpanded ? '48px' : 'auto' }}>
+      <Toolbar sx={{ justifyContent: 'center', py: !effectiveHasFeature || !effectiveExpanded ? 1 : 2, minHeight: !effectiveHasFeature || !effectiveExpanded ? '48px' : 'auto' }}>
         <Box sx={{ maxWidth: '600px', width: '100%', position: 'relative' }}>
           {/* Collapsed State - Enhanced Title */}
-          {(!hasAnyFeature || !isExpanded) && (
+          {(!effectiveHasFeature || !effectiveExpanded) && (
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'center', 
@@ -92,39 +96,43 @@ function Header({ onDataChanged }) {
             </Box>
           )}
           
-          {/* Feature Content */}
-          {enableGossip && (
+          {/* Feature Content - Only show when connected */}
+          {isConnected && enableGossip && (
             <GossipDisplay 
               users={users}
               events={events}
               allDataLoaded={allDataLoaded}
-              isExpanded={isExpanded}
+              isExpanded={effectiveExpanded}
             />
           )}
-          {enableReminders && (
+          {isConnected && enableReminders && (
             <InsightsDisplay 
               users={users}
               events={events}
               eventsLoaded={eventsLoaded}
-              isExpanded={isExpanded}
+              isExpanded={effectiveExpanded}
             />
           )}
         </Box>
       </Toolbar>
       
-      {hasAnyFeature && (
+      {/* Hide expand/collapse and add buttons when offline */}
+      {isConnected && effectiveHasFeature && (
         <ExpandCollapseButton 
-          isExpanded={isExpanded}
+          isExpanded={effectiveExpanded}
           onToggle={toggleExpanded}
           onCreateUser={handleCreateUser}
         />
       )}
       
-      <CreateUserForm 
-        open={showCreateUserForm}
-        onClose={() => setShowCreateUserForm(false)}
-        onUserCreated={handleUserCreated}
-      />
+      {/* Hide create user form when offline */}
+      {isConnected && (
+        <CreateUserForm 
+          open={showCreateUserForm}
+          onClose={() => setShowCreateUserForm(false)}
+          onUserCreated={handleUserCreated}
+        />
+      )}
     </AppBar>
   );
 }

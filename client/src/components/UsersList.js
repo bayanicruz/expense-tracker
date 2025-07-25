@@ -209,6 +209,20 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }
         renderItem={renderUserItem}
         showItemsWhenClosed={true}
         renderItemsWhenClosed={renderAvatarsWhenClosed}
+        headerStyle={{
+          background: 'black',
+          color: 'white',
+          '&:hover': {
+            background: 'black',
+            color: 'white',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.16), 0 8px 16px rgba(0,0,0,0.12)',
+            transform: 'translateY(-4px) scale(1.02)',
+          },
+          '&:active': {
+            background: 'black',
+            color: 'white',
+          }
+        }}
       />
       <UserDetailView 
         ref={userDetailRef}
