@@ -11,6 +11,7 @@ import DatabaseOverviewCard from './analytics/DatabaseOverviewCard';
 import CollectionBreakdownCard from './analytics/CollectionBreakdownCard';
 import PerformanceInsightsCard from './analytics/PerformanceInsightsCard';
 import AtlasTierCard from './analytics/AtlasTierCard';
+import { API_URL } from '../config/api';
 import AnalyticsLoading from './analytics/AnalyticsLoading';
 import AnalyticsError from './analytics/AnalyticsError';
 
@@ -27,19 +28,13 @@ function Analytics() {
     try {
       setLoading(true);
       setError(null);
-      const API_URL = process.env.REACT_APP_API_URL || '';
-      console.log('Fetching analytics from /api/analytics...');
-      
       const response = await fetch(`${API_URL}/api/analytics`);
-      console.log('Analytics response status:', response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
-        console.log('Analytics data received:', data);
         setAnalytics(data);
       } else {
         const errorText = await response.text();
-        console.error('Analytics response error:', errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
     } catch (error) {

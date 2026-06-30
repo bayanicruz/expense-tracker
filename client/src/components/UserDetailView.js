@@ -26,6 +26,7 @@ import Avatar from './Avatar';
 import { getUserAvatar } from '../utils/avatarUtils';
 import { calculateTotalOwesToOthers, calculateTotalOwedToUser, formatCurrency } from '../utils/debtUtils';
 import MutualDebtsSection from './MembersOwedSection';
+import { API_URL } from '../config/api';
 
 const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEventClick }, ref) => {
   const [userData, setUserData] = useState({
@@ -59,8 +60,6 @@ const UserDetailView = forwardRef(({ open, onClose, userId, onUserUpdated, onEve
       }
     }
   }));
-
-  const API_URL = process.env.REACT_APP_API_URL || '';
 
   const fetchAllData = async () => {
     try {

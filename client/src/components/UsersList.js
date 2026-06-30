@@ -5,6 +5,7 @@ import UserDetailView from './UserDetailView';
 import EventDetailView from './EventDetailView';
 import Avatar from './Avatar';
 import useApiCall from '../hooks/useApiCall';
+import { API_URL } from '../config/api';
 import { getUserAvatar } from '../utils/avatarUtils';
 
 const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }, ref) => {
@@ -25,8 +26,6 @@ const UsersList = forwardRef(({ isOpen, onToggle, onUserClick, onLoadingChange }
       fetchUsers(); // Always refresh users regardless of open state
     }
   }));
-
-  const API_URL = process.env.REACT_APP_API_URL || '';
 
   const fetchUsers = async () => {
     await apiCall(async () => {

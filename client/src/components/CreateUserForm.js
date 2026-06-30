@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import LoadingOverlay from './LoadingOverlay';
 import useApiCall from '../hooks/useApiCall';
+import { API_URL } from '../config/api';
 
 function CreateUserForm({ open, onClose, onUserCreated }) {
   const [userData, setUserData] = useState({
@@ -55,8 +56,7 @@ function CreateUserForm({ open, onClose, onUserCreated }) {
 
     await apiCall(async () => {
       try {
-        const API_URL = process.env.REACT_APP_API_URL || '';
-        const response = await fetch(`${API_URL}/api/users`, {
+      const response = await fetch(`${API_URL}/api/users`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

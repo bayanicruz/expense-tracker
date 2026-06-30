@@ -6,6 +6,7 @@ import {
   Alert
 } from '@mui/material';
 import { Download as DownloadIcon } from '@mui/icons-material';
+import { API_URL } from '../../config/api';
 
 function ExportButton() {
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,6 @@ function ExportButton() {
     try {
       setLoading(true);
       
-      const API_URL = process.env.REACT_APP_API_URL || '';
       const response = await fetch(`${API_URL}/api/export/csv`);
       
       if (!response.ok) {

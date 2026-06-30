@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_URL } from '../config/api';
 
 export const useDataFetching = () => {
   const [users, setUsers] = useState([]);
@@ -8,8 +9,6 @@ export const useDataFetching = () => {
   const [usersError, setUsersError] = useState(null);
   const [eventsError, setEventsError] = useState(null);
   const [isConnected, setIsConnected] = useState(true);
-
-  const API_URL = process.env.REACT_APP_API_URL || '';
 
   const fetchUsers = useCallback(async () => {
     try {
