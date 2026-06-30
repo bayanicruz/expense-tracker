@@ -94,13 +94,10 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
 
     setUserSearchLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users?search=${encodeURIComponent(searchTerm.trim())}`);
       if (response.ok) {
         const users = await response.json();
-        const filteredUsers = users.filter(user => 
-          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
-        setAvailableUsers(filteredUsers);
+        setAvailableUsers(users);
       }
     } catch (error) {
       console.error('Error searching users:', error);
@@ -117,13 +114,10 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
 
     setOwnerSearchLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users?search=${encodeURIComponent(searchTerm.trim())}`);
       if (response.ok) {
         const users = await response.json();
-        const filteredUsers = users.filter(user => 
-          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
-        setAvailableOwners(filteredUsers);
+        setAvailableOwners(users);
       }
     } catch (error) {
       console.error('Error searching owners:', error);
@@ -242,16 +236,17 @@ function CreateEventForm({ open, onClose, onEventCreated }) {
           item => item.itemName.trim() && item.amount && parseFloat(item.amount) > 0
         );
 
-        for (const item of validExpenseItems) {
-          await fetch(`${process.env.REACT_APP_API_URL}/api/expense-items`, {
+        if (validExpenseItems.length > 0) {
+          await fetch(`${process.env.REACT_APP_API_URL}/api/events/${createdEvent._id}/items/batch`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              eventId: createdEvent._id,
-              itemName: item.itemName,
-              amount: parseFloat(item.amount)
+              items: validExpenseItems.map(item => ({
+                itemName: item.itemName,
+                amount: parseFloat(item.amount)
+              }))
             })
           });
         }

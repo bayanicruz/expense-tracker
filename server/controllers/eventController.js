@@ -9,28 +9,37 @@ const getAllEvents = async (req, res) => {
         { path: 'owner', select: 'name' },
         { path: 'participants.user', select: 'name' }
       ])
-      .sort({ eventDate: -1 }); // Most recent first
+      .sort({ eventDate: -1 });
 
-    // Calculate total and remaining balance for each event
-    const eventsWithTotals = await Promise.all(
-      events.map(async (event) => {
-        const items = await ExpenseItem.find({ eventId: event._id });
-        const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
-        
-        // Calculate remaining balance (total amount - amount paid by participants)
-        const participantCount = event.participants.length;
-        const perPersonAmount = participantCount > 0 ? totalAmount / participantCount : 0;
-        const totalAmountPaid = event.participants.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
-        const remainingBalance = Math.max(0, totalAmount - totalAmountPaid);
-        
-        return {
-          ...event.toObject(),
-          totalAmount,
-          itemCount: items.length,
-          remainingBalance
-        };
-      })
-    );
+    if (events.length === 0) {
+      return res.json([]);
+    }
+
+    const eventIds = events.map(e => e._id);
+    const allItems = await ExpenseItem.find({ eventId: { $in: eventIds } });
+
+    const itemsByEvent = {};
+    for (const item of allItems) {
+      const eid = item.eventId.toString();
+      if (!itemsByEvent[eid]) itemsByEvent[eid] = [];
+      itemsByEvent[eid].push(item);
+    }
+
+    const eventsWithTotals = events.map(event => {
+      const items = itemsByEvent[event._id.toString()] || [];
+      const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+
+      const participantCount = event.participants.length;
+      const totalAmountPaid = event.participants.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
+      const remainingBalance = Math.max(0, totalAmount - totalAmountPaid);
+
+      return {
+        ...event.toObject(),
+        totalAmount,
+        itemCount: items.length,
+        remainingBalance
+      };
+    });
 
     res.json(eventsWithTotals);
   } catch (error) {
@@ -242,6 +251,41 @@ const updateParticipantPaymentAmount = async (req, res) => {
   }
 };
 
+// POST /api/events/:id/items/batch
+const addEventItemBatch = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'items array is required' });
+    }
+
+    for (const item of items) {
+      if (!item.itemName || !item.amount || item.amount <= 0) {
+        return res.status(400).json({ error: 'Each item needs itemName and a positive amount' });
+      }
+    }
+
+    const event = await Event.findById(id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    const expenseItems = items.map(item => ({
+      eventId: id,
+      itemName: item.itemName,
+      amount: item.amount
+    }));
+
+    const created = await ExpenseItem.insertMany(expenseItems);
+
+    res.status(201).json(created);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getAllEvents,
   getEventById,
@@ -250,5 +294,6 @@ module.exports = {
   deleteEvent,
   getEventItems,
   addEventItem,
+  addEventItemBatch,
   updateParticipantPaymentAmount
 };
