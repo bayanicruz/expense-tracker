@@ -46,7 +46,8 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
   };
 
   const handlePasswordSubmit = () => {
-    if (password !== 'admin') {
+    const purgePassword = process.env.REACT_APP_PURGE_PASSWORD || '';
+    if (!purgePassword || password !== purgePassword) {
       setError('Incorrect password');
       return;
     }
@@ -65,7 +66,7 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ password: 'admin' })
+        body: JSON.stringify({ password: process.env.REACT_APP_PURGE_PASSWORD || '' })
       });
 
       if (response.ok) {
@@ -138,6 +139,7 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
           </Grid>
         </Grid>
 
+        {process.env.REACT_APP_PURGE_PASSWORD && (
         <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #e0e0e0' }}>
           <Button
             variant="outlined"
@@ -150,6 +152,7 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
             Purge All Data
           </Button>
         </Box>
+        )}
       </CardContent>
 
       {/* Purge Data Dialog */}

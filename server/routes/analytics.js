@@ -1,6 +1,7 @@
 // server/routes/analytics.js
 const express = require('express');
 const { getAnalytics, purgeAllData } = require('../controllers/analyticsController');
+const { validatePurgeAll } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -8,6 +9,6 @@ const router = express.Router();
 router.get('/', getAnalytics);
 
 // DELETE /api/analytics/purge-all - Purge all data (admin only)
-router.delete('/purge-all', purgeAllData);
+router.delete('/purge-all', validatePurgeAll, purgeAllData);
 
 module.exports = router;

@@ -128,9 +128,13 @@ const getAnalytics = async (req, res) => {
 const purgeAllData = async (req, res) => {
   try {
     const { password } = req.body;
-    
-    // Verify admin password
-    if (password !== 'admin') {
+    const purgePassword = process.env.PURGE_PASSWORD;
+
+    if (!purgePassword) {
+      return res.status(501).json({ error: 'Data purge is not configured' });
+    }
+
+    if (password !== purgePassword) {
       return res.status(401).json({ error: 'Invalid admin password' });
     }
     

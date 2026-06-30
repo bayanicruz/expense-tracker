@@ -1,5 +1,11 @@
 // server/routes/users.js
 const express = require('express');
+const {
+  validateCreateUser,
+  validateUpdateUser,
+  validateUserId,
+  validateUserSearch,
+} = require('../middleware/validate');
 const { 
   getAllUsers, 
   getUserById, 
@@ -11,22 +17,22 @@ const {
 
 const router = express.Router();
 
-// GET /api/users - Get all users
-router.get('/', getAllUsers);
+// GET /api/users - Get all users (with optional ?search=)
+router.get('/', validateUserSearch, getAllUsers);
 
 // GET /api/users/:id - Get user by ID
-router.get('/:id', getUserById);
+router.get('/:id', validateUserId, getUserById);
 
 // GET /api/users/:id/expenses - Get user's expense summary
-router.get('/:id/expenses', getUserExpenses);
+router.get('/:id/expenses', validateUserId, getUserExpenses);
 
-// POST /api/users - Create new user (admin only in future)
-router.post('/', createUser);
+// POST /api/users - Create new user
+router.post('/', validateCreateUser, createUser);
 
 // PATCH /api/users/:id - Update user
-router.patch('/:id', updateUser);
+router.patch('/:id', validateUpdateUser, updateUser);
 
 // DELETE /api/users/:id - Delete user
-router.delete('/:id', deleteUser);
+router.delete('/:id', validateUserId, deleteUser);
 
 module.exports = router;

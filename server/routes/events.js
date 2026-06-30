@@ -1,5 +1,12 @@
 // server/routes/events.js
 const express = require('express');
+const {
+  validateCreateEvent,
+  validateUpdateEvent,
+  validateEventId,
+  validateAddEventItem,
+  validateUpdatePayment,
+} = require('../middleware/validate');
 const { 
   getAllEvents, 
   getEventById,
@@ -15,17 +22,17 @@ const router = express.Router();
 
 // Event routes
 router.get('/', getAllEvents);
-router.get('/:id', getEventById);
-router.post('/', createEvent);
-router.put('/:id', updateEvent);
-router.patch('/:id', updateEvent);
-router.delete('/:id', deleteEvent);
+router.get('/:id', validateEventId, getEventById);
+router.post('/', validateCreateEvent, createEvent);
+router.put('/:id', validateUpdateEvent, updateEvent);
+router.patch('/:id', validateUpdateEvent, updateEvent);
+router.delete('/:id', validateEventId, deleteEvent);
 
 // Expense item routes (nested under events)
-router.get('/:id/items', getEventItems);
-router.post('/:id/items', addEventItem);
+router.get('/:id/items', validateEventId, getEventItems);
+router.post('/:id/items', validateAddEventItem, addEventItem);
 
 // Payment amount routes
-router.patch('/:id/participants/:participantId/payment', updateParticipantPaymentAmount);
+router.patch('/:id/participants/:participantId/payment', validateUpdatePayment, updateParticipantPaymentAmount);
 
 module.exports = router;
