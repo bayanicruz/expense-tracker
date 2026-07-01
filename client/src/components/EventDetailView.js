@@ -125,26 +125,18 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
   const searchUsers = async (searchTerm) => {
     setUserSearchLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/users`);
+      const url = searchTerm.trim()
+        ? `${API_URL}/api/users?search=${encodeURIComponent(searchTerm.trim())}`
+        : `${API_URL}/api/users`;
+      const response = await fetch(url);
       if (response.ok) {
         const users = await response.json();
         
-        // Get already added participant IDs
         const currentParticipantIds = participantDetails.map(p => p._id);
-        
-        // Filter users that aren't already participants
         const availableUsers = users.filter(user => 
           !currentParticipantIds.includes(user._id)
         );
         
-        // If search term is provided, filter by name
-        const searchFilteredUsers = searchTerm.trim() 
-          ? availableUsers.filter(user => 
-              user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-          : availableUsers;
-        
-        // Create the options array with "Add all" as first option if there are remaining users
         const options = [];
         if (availableUsers.length > 0) {
           options.push({
@@ -154,8 +146,7 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
           });
         }
         
-        // Add the filtered users
-        options.push(...searchFilteredUsers);
+        options.push(...availableUsers);
         
         setAvailableUsers(options);
       }
@@ -441,16 +432,6 @@ function EventDetailView({ open, onClose, eventId, onEventUpdated, breadcrumbUse
       try {
         setLoading(true);
         
-        // Delete all expense items for this event
-        for (const item of expenseItems) {
-          if (!item.isNew) { // Only delete existing items
-            await fetch(`${API_URL}/api/expense-items/${item._id}`, {
-              method: 'DELETE'
-            });
-          }
-        }
-        
-        // Delete the event
         const response = await fetch(`${API_URL}/api/events/${eventId}`, {
           method: 'DELETE'
         });

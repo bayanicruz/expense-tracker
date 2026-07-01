@@ -1,55 +1,80 @@
 // server/controllers/userController.js
 const { User, Event, ExpenseItem } = require('../models');
 
-// GET /api/users
+// GET /api/users [?search=<term>]
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({}, '-passwordHash'); // Exclude password hash
-    
-    // Calculate running balance for each user
-    const usersWithBalance = await Promise.all(
-      users.map(async (user) => {
-        // Find all events where user is a participant BUT NOT the owner
-        const events = await Event.find({
-          'participants.user': user._id,
-          owner: { $ne: user._id }  // Exclude events owned by this user
-        }).populate('participants.user', 'name');
+    const { search } = req.query;
+    const filter = search
+      ? { name: { $regex: escapeRegex(search), $options: 'i' } }
+      : {};
 
-        let totalOwed = 0;
-        let totalOwedToUser = 0;
+    const users = await User.find(filter, '-passwordHash');
 
-        for (const event of events) {
-          // Get expense items for this event
-          const expenseItems = await ExpenseItem.find({ eventId: event._id });
-          const eventTotal = expenseItems.reduce((sum, item) => sum + item.amount, 0);
-          
-          // Find user's participation info
-          const userParticipation = event.participants.find(p => p.user._id.toString() === user._id.toString());
-          const participantCount = event.participants.length;
-          const userShare = participantCount > 0 ? eventTotal / participantCount : 0;
-          const amountPaid = userParticipation ? userParticipation.amountPaid || 0 : 0;
-          const amountOwed = Math.max(0, userShare - amountPaid);
-          
-          totalOwed += amountOwed;
-        }
+    if (users.length === 0) {
+      return res.json([]);
+    }
 
-        // Calculate amount owed to user from events they own
-        const ownedEvents = await Event.find({ owner: user._id });
-        for (const event of ownedEvents) {
-          const expenseItems = await ExpenseItem.find({ eventId: event._id });
-          const eventTotal = expenseItems.reduce((sum, item) => sum + item.amount, 0);
-          const totalAmountPaid = event.participants.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
-          const remainingBalance = Math.max(0, eventTotal - totalAmountPaid);
-          totalOwedToUser += remainingBalance;
-        }
+    const userIds = users.map(u => u._id);
 
-        return {
-          ...user.toObject(),
-          runningBalance: totalOwed,
-          amountOwedToUser: totalOwedToUser
-        };
-      })
-    );
+    const [participatedEvents, ownedEvents] = await Promise.all([
+      Event.find({ 'participants.user': { $in: userIds } }),
+      Event.find({ owner: { $in: userIds } })
+    ]);
+
+    const relevantEventIds = [
+      ...new Set([
+        ...participatedEvents.map(e => e._id.toString()),
+        ...ownedEvents.map(e => e._id.toString())
+      ])
+    ];
+
+    const allExpenseItems = await ExpenseItem.find({ eventId: { $in: relevantEventIds } });
+
+    const expenseItemsByEvent = {};
+    for (const item of allExpenseItems) {
+      const eid = item.eventId.toString();
+      if (!expenseItemsByEvent[eid]) expenseItemsByEvent[eid] = [];
+      expenseItemsByEvent[eid].push(item);
+    }
+
+    const getUserEventTotal = (eventId) => {
+      const items = expenseItemsByEvent[eventId.toString()] || [];
+      return items.reduce((sum, item) => sum + item.amount, 0);
+    };
+
+    const usersWithBalance = users.map(user => {
+      const uid = user._id.toString();
+      let totalOwed = 0;
+      let totalOwedToUser = 0;
+
+      for (const event of participatedEvents) {
+        const isParticipant = event.participants.some(p => p.user.toString() === uid);
+        if (!isParticipant || event.owner.toString() === uid) continue;
+
+        const eventTotal = getUserEventTotal(event._id);
+        const userParticipation = event.participants.find(p => p.user.toString() === uid);
+        const participantCount = event.participants.length;
+        const userShare = participantCount > 0 ? eventTotal / participantCount : 0;
+        const amountPaid = userParticipation ? userParticipation.amountPaid || 0 : 0;
+        totalOwed += Math.max(0, userShare - amountPaid);
+      }
+
+      for (const event of ownedEvents) {
+        if (event.owner.toString() !== uid) continue;
+        const eventTotal = getUserEventTotal(event._id);
+        const totalAmountPaid = event.participants.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
+        totalOwedToUser += Math.max(0, eventTotal - totalAmountPaid);
+      }
+
+      return {
+        ...user.toObject(),
+        runningBalance: totalOwed,
+        amountOwedToUser: totalOwedToUser
+      };
+    });
 
     res.json(usersWithBalance);
   } catch (error) {

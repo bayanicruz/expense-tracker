@@ -10,11 +10,10 @@ import InsightsDisplay from './InsightsDisplay';
 import CreateUserForm from './CreateUserForm';
 import ExpandCollapseButton from './ExpandCollapseButton';
 import useFeatureToggles from '../hooks/useFeatureToggles';
-import useDataFetching from '../hooks/useDataFetching';
 
-function Header({ onDataChanged, isConnected = true }) {
+function Header({ onDataChanged, isConnected = true, users = [], events = [], eventsLoaded = false, allDataLoaded = false, refreshData }) {
   const { enableGossip, enableReminders, hasAnyFeature } = useFeatureToggles();
-  const { users, events, eventsLoaded, allDataLoaded, refreshData } = useDataFetching();
+
   
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCreateUserForm, setShowCreateUserForm] = useState(false);

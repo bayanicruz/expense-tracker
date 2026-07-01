@@ -34,6 +34,9 @@ function App() {
     isConnected, 
     allDataLoaded, 
     hasData, 
+    users,
+    events,
+    eventsLoaded,
     refreshData, 
     retryConnection 
   } = useDataFetching();
@@ -149,7 +152,7 @@ function App() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Header onDataChanged={handleDataChanged} isConnected={isConnected} />
+      <Header onDataChanged={handleDataChanged} isConnected={isConnected} users={users} events={events} eventsLoaded={eventsLoaded} allDataLoaded={allDataLoaded} refreshData={refreshData} />
       <Container maxWidth="sm" sx={{ mt: 4 }}>
         <Box sx={{ 
           border: '1px solid #ddd', 

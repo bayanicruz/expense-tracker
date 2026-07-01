@@ -8,6 +8,7 @@ const {
   deleteEvent,
   getEventItems,
   addEventItem,
+  addEventItemBatch,
   updateParticipantPaymentAmount
 } = require('../controllers/eventController');
 
@@ -24,6 +25,7 @@ router.delete('/:id', deleteEvent);
 // Expense item routes (nested under events)
 router.get('/:id/items', getEventItems);
 router.post('/:id/items', addEventItem);
+router.post('/:id/items/batch', addEventItemBatch);
 
 // Payment amount routes
 router.patch('/:id/participants/:participantId/payment', updateParticipantPaymentAmount);
