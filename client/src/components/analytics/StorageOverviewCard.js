@@ -45,14 +45,35 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
     setShowConfirmation(false);
   };
 
-  const handlePasswordSubmit = () => {
-    const purgePassword = process.env.REACT_APP_PURGE_PASSWORD || '';
-    if (!purgePassword || password !== purgePassword) {
-      setError('Incorrect password');
-      return;
-    }
+  const handlePasswordSubmit = async () => {
     setError('');
-    setShowConfirmation(true);
+    setLoading(true);
+    const apiUrl = process.env.REACT_APP_API_URL || '';
+    try {
+      const response = await fetch(`${apiUrl}/api/analytics/verify-purge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      if (response.status === 501) {
+        setError('Data purge is not configured on the server');
+        return;
+      }
+      if (response.status === 401) {
+        setError('Incorrect password');
+        return;
+      }
+      if (!response.ok) {
+        setError('Failed to verify password');
+        return;
+      }
+      setShowConfirmation(true);
+    } catch (err) {
+      console.error('Error verifying purge password:', err);
+      setError('Error occurred while verifying password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmPurge = async () => {
@@ -60,13 +81,12 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
       setLoading(true);
       
       const API_URL = process.env.REACT_APP_API_URL || '';
-      // Call the purge API
       const response = await fetch(`${API_URL}/api/analytics/purge-all`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ password: process.env.REACT_APP_PURGE_PASSWORD || '' })
+        body: JSON.stringify({ password })
       });
 
       if (response.ok) {
@@ -139,7 +159,6 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
           </Grid>
         </Grid>
 
-        {process.env.REACT_APP_PURGE_PASSWORD && (
         <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #e0e0e0' }}>
           <Button
             variant="outlined"
@@ -152,7 +171,6 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
             Purge All Data
           </Button>
         </Box>
-        )}
       </CardContent>
 
       {/* Purge Data Dialog */}
@@ -174,6 +192,7 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
                 fullWidth
                 error={!!error}
                 helperText={error}
+                disabled={loading}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     handlePasswordSubmit();
@@ -214,10 +233,10 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
             <Button 
               onClick={handlePasswordSubmit}
               variant="contained"
-              disabled={!password.trim()}
+              disabled={!password.trim() || loading}
               sx={{ backgroundColor: 'black', color: 'white', '&:hover': { backgroundColor: '#333333' } }}
             >
-              Authenticate
+              {loading ? 'Verifying...' : 'Authenticate'}
             </Button>
           ) : (
             <Button 
