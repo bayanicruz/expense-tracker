@@ -1,6 +1,11 @@
 // server/routes/expense-items.js
 const express = require('express');
 const { ExpenseItem, Event } = require('../models');
+const {
+  validateCreateExpenseItem,
+  validateExpenseItemId,
+  validateUpdateExpenseItem,
+} = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -100,8 +105,8 @@ const deleteExpenseItem = async (req, res) => {
 };
 
 router.get('/', getExpenseItems);
-router.post('/', createExpenseItem);
-router.patch('/:id', updateExpenseItem);
-router.delete('/:id', deleteExpenseItem);
+router.post('/', validateCreateExpenseItem, createExpenseItem);
+router.patch('/:id', validateUpdateExpenseItem, updateExpenseItem);
+router.delete('/:id', validateExpenseItemId, deleteExpenseItem);
 
 module.exports = router;

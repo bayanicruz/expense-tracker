@@ -124,13 +124,37 @@ const getAnalytics = async (req, res) => {
   }
 };
 
+// POST /api/analytics/verify-purge - Verify purge password without purging
+const verifyPurgePassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const purgePassword = process.env.PURGE_PASSWORD;
+
+    if (!purgePassword) {
+      return res.status(501).json({ error: 'Data purge is not configured' });
+    }
+
+    if (password !== purgePassword) {
+      return res.status(401).json({ error: 'Invalid admin password' });
+    }
+
+    res.json({ verified: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to verify password' });
+  }
+};
+
 // DELETE /api/analytics/purge-all
 const purgeAllData = async (req, res) => {
   try {
     const { password } = req.body;
-    
-    // Verify admin password
-    if (password !== 'admin') {
+    const purgePassword = process.env.PURGE_PASSWORD;
+
+    if (!purgePassword) {
+      return res.status(501).json({ error: 'Data purge is not configured' });
+    }
+
+    if (password !== purgePassword) {
       return res.status(401).json({ error: 'Invalid admin password' });
     }
     
@@ -158,5 +182,6 @@ const purgeAllData = async (req, res) => {
 
 module.exports = {
   getAnalytics,
+  verifyPurgePassword,
   purgeAllData
 };
