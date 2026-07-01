@@ -140,8 +140,8 @@ function App() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Header onDataChanged={handleDataChanged} isConnected={isConnected} />
       <ErrorBoundary>
+      <Header onDataChanged={handleDataChanged} isConnected={isConnected} />
       <Container maxWidth="sm" sx={{ mt: 4 }}>
         <Box sx={{ 
           border: '1px solid #ddd', 
@@ -245,8 +245,8 @@ function App() {
             />
           </DialogContent>
         </Dialog>
-      </ErrorBoundary>
       </Container>
+      </ErrorBoundary>
     </Box>
   );
 }

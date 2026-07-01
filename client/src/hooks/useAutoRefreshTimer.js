@@ -2,21 +2,27 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const useAutoRefreshTimer = (callback, interval = 10000, isActive = true) => {
   const intervalRef = useRef(null);
+  const callbackRef = useRef(callback);
   const [tick, setTick] = useState(0);
+
+  // Keep the latest callback without resetting the interval
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
 
   const resetTimer = useCallback(() => {
     setTick(prev => prev + 1);
   }, []);
 
   const handleManualTrigger = useCallback(() => {
-    callback();
+    callbackRef.current();
     resetTimer();
-  }, [callback, resetTimer]);
+  }, [resetTimer]);
 
   useEffect(() => {
     if (!isActive) return;
 
-    intervalRef.current = setInterval(callback, interval);
+    intervalRef.current = setInterval(() => callbackRef.current(), interval);
 
     return () => {
       if (intervalRef.current) {
@@ -24,7 +30,7 @@ export const useAutoRefreshTimer = (callback, interval = 10000, isActive = true)
         intervalRef.current = null;
       }
     };
-  }, [callback, interval, isActive, tick]);
+  }, [interval, isActive, tick]);
 
   useEffect(() => {
     return () => {
