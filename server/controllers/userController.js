@@ -2,11 +2,13 @@
 const { User, Event, ExpenseItem } = require('../models');
 
 // GET /api/users [?search=<term>]
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const getAllUsers = async (req, res) => {
   try {
     const { search } = req.query;
     const filter = search
-      ? { name: { $regex: search, $options: 'i' } }
+      ? { name: { $regex: escapeRegex(search), $options: 'i' } }
       : {};
 
     const users = await User.find(filter, '-passwordHash');
