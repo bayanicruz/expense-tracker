@@ -1,40 +1,28 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const useAutoRefreshTimer = (callback, interval = 10000, isActive = true) => {
   const intervalRef = useRef(null);
-  
+  const callbackRef = useRef(callback);
+  const [tick, setTick] = useState(0);
+
+  // Keep the latest callback without resetting the interval
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
   const resetTimer = useCallback(() => {
-    // Clear existing timer
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    
-    // Start new timer if active
-    if (isActive) {
-      intervalRef.current = setInterval(callback, interval);
-    }
-  }, [callback, interval, isActive]);
+    setTick(prev => prev + 1);
+  }, []);
 
   const handleManualTrigger = useCallback(() => {
-    // Clear existing timer
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    
-    // Execute callback immediately
-    callback();
-    
-    // Start fresh timer
-    if (isActive) {
-      intervalRef.current = setInterval(callback, interval);
-    }
-  }, [callback, interval, isActive]);
+    callbackRef.current();
+    resetTimer();
+  }, [resetTimer]);
 
-  // Set up initial timer
   useEffect(() => {
-    if (isActive) {
-      intervalRef.current = setInterval(callback, interval);
-    }
+    if (!isActive) return;
+
+    intervalRef.current = setInterval(() => callbackRef.current(), interval);
 
     return () => {
       if (intervalRef.current) {
@@ -42,9 +30,8 @@ export const useAutoRefreshTimer = (callback, interval = 10000, isActive = true)
         intervalRef.current = null;
       }
     };
-  }, [callback, interval, isActive]);
+  }, [interval, isActive, tick]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) {

@@ -6,6 +6,8 @@ import EventDetailView from './EventDetailView';
 import Avatar from './Avatar';
 import useApiCall from '../hooks/useApiCall';
 import { getUserAvatar } from '../utils/avatarUtils';
+import { getEventDollarColor } from '../utils/formatUtils';
+import { API_URL } from '../config/api';
 
 function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingChange }) {
   const [events, setEvents] = useState([]);
@@ -19,31 +21,6 @@ function EventsList({ isOpen, onToggle, onEventClick, onDataChanged, onLoadingCh
       fetchEvents();
     }
   }, [isOpen]);
-
-  const API_URL = process.env.REACT_APP_API_URL || '';
-
-  const getEventDollarColor = (eventName) => {
-    const colors = [
-      { bg: '#e3f2fd', text: '#1976d2' }, // Blue
-      { bg: '#f3e5f5', text: '#7b1fa2' }, // Purple
-      { bg: '#e8f5e8', text: '#388e3c' }, // Green
-      { bg: '#fff3e0', text: '#f57c00' }, // Orange
-      { bg: '#ffebee', text: '#d32f2f' }, // Red
-      { bg: '#e0f2f1', text: '#00796b' }, // Teal
-      { bg: '#fce4ec', text: '#c2185b' }, // Pink
-      { bg: '#e8eaf6', text: '#3f51b5' }, // Indigo
-    ];
-    
-    // Generate hash from event name
-    let hash = 0;
-    for (let i = 0; i < eventName.length; i++) {
-      hash = eventName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    // Use hash to select color
-    const colorIndex = Math.abs(hash) % colors.length;
-    return colors[colorIndex];
-  };
 
   const fetchEvents = async () => {
     await apiCall(async () => {

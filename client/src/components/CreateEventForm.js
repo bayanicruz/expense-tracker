@@ -21,6 +21,7 @@ import LoadingOverlay from './LoadingOverlay';
 import Avatar from './Avatar';
 import useApiCall from '../hooks/useApiCall';
 import { getUserAvatar } from '../utils/avatarUtils';
+import { API_URL } from '../config/api';
 
 function CreateEventForm({ open, onClose, onEventCreated }) {
   const [eventData, setEventData] = useState({

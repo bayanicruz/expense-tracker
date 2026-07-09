@@ -1,5 +1,5 @@
 {
-  "_comment": "Only one feature can be enabled at a time - they are mutually exclusive",
+  "_comment": "Features can be enabled independently",
   "enableGossip": false,
   "enableReminders": true
 }

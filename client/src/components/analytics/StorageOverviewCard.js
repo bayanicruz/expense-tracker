@@ -15,6 +15,7 @@ import {
   Alert
 } from '@mui/material';
 import { Storage as StorageIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { API_URL } from '../../config/api';
 
 function StorageOverviewCard({ analytics, onDataPurged }) {
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
@@ -58,8 +59,6 @@ function StorageOverviewCard({ analytics, onDataPurged }) {
     try {
       setLoading(true);
       
-      const API_URL = process.env.REACT_APP_API_URL || '';
-      // Call the purge API
       const response = await fetch(`${API_URL}/api/analytics/purge-all`, {
         method: 'DELETE',
         headers: {

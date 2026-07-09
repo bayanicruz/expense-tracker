@@ -19,6 +19,7 @@ import EventsList from './components/EventsList';
 import Analytics from './components/Analytics';
 import LoadingOverlay from './components/LoadingOverlay';
 import EmptyState from './components/EmptyState';
+import ErrorBoundary from './components/ErrorBoundary';
 import useDataFetching from './hooks/useDataFetching';
 import CreateUserForm from './components/CreateUserForm';
 
@@ -55,19 +56,9 @@ function App() {
   };
 
   const handleUserClick = (user) => {
-    if (user === 'create') {
-      console.log('Create new user');
-    } else {
-      console.log('Selected user:', user);
-    }
   };
 
   const handleEventClick = (event) => {
-    if (event === 'create') {
-      console.log('Create new event');
-    } else {
-      console.log('Selected event:', event);
-    }
   };
 
   const handleDataChanged = () => {
@@ -149,6 +140,7 @@ function App() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
+      <ErrorBoundary>
       <Header onDataChanged={handleDataChanged} isConnected={isConnected} />
       <Container maxWidth="sm" sx={{ mt: 4 }}>
         <Box sx={{ 
@@ -254,6 +246,7 @@ function App() {
           </DialogContent>
         </Dialog>
       </Container>
+      </ErrorBoundary>
     </Box>
   );
 }
